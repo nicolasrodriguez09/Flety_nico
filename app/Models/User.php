@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -17,8 +19,11 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'role_id',
         'name',
         'email',
+        'phone',
+        'status',
         'password',
     ];
 
@@ -43,5 +48,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function transporterProfile(): HasOne
+    {
+        return $this->hasOne(Transporter::class);
+    }
+
+    public function producerProfile(): HasOne
+    {
+        return $this->hasOne(Producer::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role?->slug === Role::ADMIN;
     }
 }

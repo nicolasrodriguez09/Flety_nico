@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -24,8 +25,11 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'role_id' => Role::query()->where('slug', Role::PRODUCER)->value('id'),
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'phone' => fake()->unique()->numerify('3#########'),
+            'status' => 'active',
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
