@@ -7,6 +7,7 @@ use App\Models\Producer;
 use App\Models\Role;
 use App\Models\Transporter;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,12 +50,45 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'phone' => ['required', 'string', 'max:20', 'unique:'.User::class],
+            'phone' => ['required', 'string', 'regex:/^\+?[0-9\s-]{7,20}$/', 'max:20', 'unique:'.User::class],
             'role' => [
                 'required',
                 'string',
                 Rule::exists('roles', 'slug')->where(fn ($query) => $query->whereIn('slug', Role::publicRegistrationSlugs())),
             ],
+            'plate' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('vehicles', 'plate'),
+            ],
+            'vehicle_type' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'string',
+                'max:50',
+            ],
+            'capacity_kg' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'numeric',
+                'gt:0',
+                'max:99999999.99',
+            ],
+            'farm_name' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::PRODUCER),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'farm_location' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::PRODUCER),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'production_type' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -73,14 +107,27 @@ class RegisteredUserController extends Controller
             ]);
 
             if ($role->slug === Role::TRANSPORTER) {
-                Transporter::create([
+                $transporter = Transporter::create([
                     'user_id' => $user->id,
+                ]);
+
+                Vehicle::create([
+                    'transporter_id' => $transporter->id,
+                    'plate' => strtoupper(trim($request->string('plate')->toString())),
+                    'vehicle_type' => $request->string('vehicle_type')->trim()->toString(),
+                    'capacity_kg' => $request->input('capacity_kg'),
+                    'status' => Vehicle::STATUS_AVAILABLE,
                 ]);
             }
 
             if ($role->slug === Role::PRODUCER) {
                 Producer::create([
                     'user_id' => $user->id,
+                    'farm_name' => $request->string('farm_name')->trim()->toString(),
+                    'farm_location' => $request->string('farm_location')->trim()->toString(),
+                    'production_type' => $request->filled('production_type')
+                        ? $request->string('production_type')->trim()->toString()
+                        : null,
                 ]);
             }
 

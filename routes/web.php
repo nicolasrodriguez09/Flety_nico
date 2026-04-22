@@ -44,6 +44,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/transportista/vehiculos', [VehicleController::class, 'store'])
         ->middleware(['verified', 'role:transportista'])
         ->name('transporter.vehicles.store');
+    Route::post('/transportista/solicitudes/{transportRequest}/aceptar', [TransportRequestController::class, 'accept'])
+        ->middleware(['verified', 'role:transportista'])
+        ->name('transporter.transport-requests.accept');
+    Route::post('/transportista/solicitudes/{transportRequest}/rechazar', [TransportRequestController::class, 'reject'])
+        ->middleware(['verified', 'role:transportista'])
+        ->name('transporter.transport-requests.reject');
 
     Route::get('/productor/panel', [DashboardController::class, 'producer'])
         ->middleware(['verified', 'role:productor'])

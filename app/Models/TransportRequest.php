@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TransportRequest extends Model
 {
@@ -42,5 +43,10 @@ class TransportRequest extends Model
     public function producer(): BelongsTo
     {
         return $this->belongsTo(Producer::class);
+    }
+
+    public function service(): HasOne
+    {
+        return $this->hasOne(Service::class);
     }
 }

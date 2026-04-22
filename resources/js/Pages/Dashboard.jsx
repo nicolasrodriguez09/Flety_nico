@@ -1,102 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
-const roleContent = {
-    transportista: {
-        badge: 'Panel transportista',
-        title: 'Tus viajes de retorno ahora pueden convertirse en negocio',
-        subtitle:
-            'Prepara tu espacio de carga, revisa solicitudes y mantén tu operación clara desde un solo panel.',
-        primaryLabel: 'Publicar y gestionar rutas',
-        quickFilters: ['Rutas activas', 'Solicitudes', 'Historial'],
-        highlightTitle: 'Viajes listos para publicar',
-        highlightRoute: 'Tunja',
-        highlightRouteTo: 'Bogotá',
-        highlightDate: 'Próxima salida disponible',
-        infoLabel: 'Capacidad sugerida',
-        infoValue: '1.8 toneladas',
-        cards: [
-            {
-                eyebrow: 'Resumen',
-                title: 'Rutas preparadas',
-                body: 'Consulta salidas activas, capacidad disponible y próximos movimientos.',
-            },
-            {
-                eyebrow: 'Coordinación',
-                title: 'Solicitudes pendientes',
-                body: 'Centraliza productores interesados y responde desde un mismo flujo.',
-            },
-            {
-                eyebrow: 'Confianza',
-                title: 'Perfil validado',
-                body: 'Documentación, contacto y trazabilidad alineados con el modelo de Flety.',
-            },
-        ],
-    },
-    productor: {
-        badge: 'Panel productor',
-        title: 'Encuentra rutas disponibles sin perder tiempo en coordinación dispersa',
-        subtitle:
-            'Busca transporte, compara opciones y mantén tus solicitudes visibles en una experiencia simple y clara.',
-        primaryLabel: 'Explorar rutas disponibles',
-        quickFilters: ['Nuevas rutas', 'Solicitudes', 'Historial'],
-        highlightTitle: 'Ruta sugerida para tu carga',
-        highlightRoute: 'Neiva',
-        highlightRouteTo: 'Ibagué',
-        highlightDate: 'Ventana disponible esta semana',
-        infoLabel: 'Costo estimado',
-        infoValue: '$420.000 - $520.000',
-        cards: [
-            {
-                eyebrow: 'Búsqueda',
-                title: 'Opciones cercanas',
-                body: 'Visualiza rutas activas y filtra por origen, destino y tipo de producto.',
-            },
-            {
-                eyebrow: 'Seguimiento',
-                title: 'Solicitudes enviadas',
-                body: 'Mantén el control del estado de cada solicitud sin salir del panel.',
-            },
-            {
-                eyebrow: 'Ahorro',
-                title: 'Costos más claros',
-                body: 'Aprovecha viajes de retorno para reducir fricción y gasto logístico.',
-            },
-        ],
-    },
-    administrador: {
-        badge: 'Panel administrador',
-        title: 'Supervisa el ecosistema Flety con una vista limpia y centralizada',
-        subtitle:
-            'Mantén validaciones, actividad operativa y trazabilidad general dentro de una misma interfaz base.',
-        primaryLabel: null,
-        quickFilters: ['Validaciones', 'Actividad', 'Soporte'],
-        highlightTitle: 'Operación supervisada',
-        highlightRoute: 'Flujo',
-        highlightRouteTo: 'General',
-        highlightDate: 'Estado operativo del sistema',
-        infoLabel: 'Frente prioritario',
-        infoValue: 'Validación de perfiles',
-        cards: [
-            {
-                eyebrow: 'Control',
-                title: 'Usuarios y roles',
-                body: 'Separa responsabilidades de productor, transportista y administrador sin cruces.',
-            },
-            {
-                eyebrow: 'Revisión',
-                title: 'Transportistas por validar',
-                body: 'Prepara la base visual para el módulo de aprobaciones y documentos.',
-            },
-            {
-                eyebrow: 'Monitoreo',
-                title: 'Actividad central',
-                body: 'Organiza el seguimiento del marketplace desde un solo dashboard.',
-            },
-        ],
-    },
-};
-
 function SearchIcon() {
     return (
         <svg
@@ -205,7 +109,14 @@ function TrendLine() {
             <circle cx="334" cy="84" r="6" fill="#6AA46A" />
             <circle cx="396" cy="30" r="7" fill="#4F9547" />
             <defs>
-                <linearGradient id="trend" x1="24" y1="148" x2="396" y2="30" gradientUnits="userSpaceOnUse">
+                <linearGradient
+                    id="trend"
+                    x1="24"
+                    y1="148"
+                    x2="396"
+                    y2="30"
+                    gradientUnits="userSpaceOnUse"
+                >
                     <stop stopColor="#7FAF75" />
                     <stop offset="1" stopColor="#2F6D3E" />
                 </linearGradient>
@@ -214,11 +125,61 @@ function TrendLine() {
     );
 }
 
-export default function Dashboard({ dashboardRole, entryRoute }) {
+function DataList({ section }) {
+    return (
+        <article className="rounded-[1.8rem] border border-[#e6eadf] bg-[linear-gradient(180deg,#ffffff_0%,#f7f9f3_100%)] p-6 shadow-[0_24px_62px_-50px_rgba(42,73,57,0.4)]">
+            <h3 className="text-lg font-semibold tracking-[-0.03em] text-[#203029]">
+                {section.title}
+            </h3>
+
+            <div className="mt-5 space-y-3">
+                {section.items?.length ? (
+                    section.items.map((item, index) => (
+                        <div
+                            key={`${section.title}-${index}`}
+                            className="rounded-2xl border border-[#e7eadf] bg-white px-4 py-3"
+                        >
+                            <p className="font-semibold text-[#203029]">
+                                {item.title}
+                            </p>
+                            <p className="mt-1 text-sm text-[#626a65]">
+                                {item.meta}
+                            </p>
+                        </div>
+                    ))
+                ) : (
+                    <div className="rounded-2xl border border-dashed border-[#d8ddd2] px-4 py-6 text-sm text-[#69706b]">
+                        {section.emptyMessage}
+                    </div>
+                )}
+            </div>
+        </article>
+    );
+}
+
+export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) {
     const { auth } = usePage().props;
     const user = auth.user;
     const role = dashboardRole ?? user.role?.slug;
-    const content = roleContent[role] ?? roleContent.productor;
+    const data = dashboardData ?? {
+        hero: {
+            badge: `Panel ${role ?? 'Flety'}`,
+            title: 'Panel operativo',
+            subtitle: 'Aun no hay informacion suficiente para mostrar.',
+        },
+        pills: [],
+        spotlight: {
+            title: 'Resumen',
+            route: 'Sin datos',
+            routeTo: 'disponibles',
+            dateLabel: 'Sin actividad',
+            infoLabel: 'Estado',
+            infoValue: 'Pendiente',
+            statusLabel: 'Base',
+        },
+        metrics: [],
+        lists: [],
+    };
 
     return (
         <AuthenticatedLayout
@@ -238,7 +199,7 @@ export default function Dashboard({ dashboardRole, entryRoute }) {
             <div className="py-8 sm:py-10">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     <section className="overflow-hidden rounded-[2.3rem] border border-[#e7eadf] bg-[linear-gradient(180deg,#fbfbf7_0%,#f3f6ec_100%)] shadow-[0_36px_90px_-52px_rgba(42,73,57,0.42)]">
-                        <div className="border-b border-[#ecefe7] bg-white/82 px-6 py-4 backdrop-blur lg:px-8">
+                        <div className="border-b border-[#ecefe7] bg-white px-6 py-4 lg:px-8">
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="flex items-center gap-4">
                                     <img
@@ -249,10 +210,10 @@ export default function Dashboard({ dashboardRole, entryRoute }) {
                                     <div className="hidden h-10 w-px bg-[#e6eadf] sm:block" />
                                     <div>
                                         <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#5d7f69]">
-                                            {content.badge}
+                                            {data.hero.badge}
                                         </p>
                                         <p className="mt-1 text-sm text-[#6b726d]">
-                                            Base visual inicial para la operación de la plataforma
+                                            Informacion funcional cargada desde la base de datos
                                         </p>
                                     </div>
                                 </div>
@@ -265,12 +226,15 @@ export default function Dashboard({ dashboardRole, entryRoute }) {
                                         <SearchIcon />
                                     </button>
 
-                                    {content.quickFilters.map((item) => (
+                                    {data.pills.slice(0, 3).map((item) => (
                                         <div
-                                            key={item}
+                                            key={item.label}
                                             className="rounded-2xl border border-[#e7eadf] bg-white px-4 py-2.5 text-sm font-medium text-[#4a5f55] shadow-[0_10px_24px_-22px_rgba(0,0,0,0.45)]"
                                         >
-                                            {item}
+                                            <span className="text-[#7a837e]">
+                                                {item.label}:{' '}
+                                            </span>
+                                            {item.value}
                                         </div>
                                     ))}
                                 </div>
@@ -293,36 +257,34 @@ export default function Dashboard({ dashboardRole, entryRoute }) {
                                                     Hola, {user.name.split(' ')[0]}.
                                                 </h3>
                                                 <p className="mt-4 max-w-2xl text-[1.02rem] leading-8 text-[#5b645f]">
-                                                    {content.title}
+                                                    {data.hero.title}
                                                 </p>
                                                 <p className="mt-3 max-w-2xl text-sm leading-7 text-[#6b726d]">
-                                                    {content.subtitle}
+                                                    {data.hero.subtitle}
                                                 </p>
                                             </div>
 
-                                    <div className="flex flex-wrap gap-3">
-                                                <div className="rounded-2xl border border-[#e6ebdf] bg-white px-4 py-3 shadow-[0_16px_34px_-28px_rgba(0,0,0,0.4)]">
-                                                    <p className="text-xs uppercase tracking-[0.2em] text-[#7a837e]">
-                                                        Rol
-                                                    </p>
-                                                    <p className="mt-1 font-semibold text-[#203029]">
-                                                        {user.role?.name ?? 'Usuario'}
-                                                    </p>
-                                                </div>
-                                                <div className="rounded-2xl border border-[#e6ebdf] bg-white px-4 py-3 shadow-[0_16px_34px_-28px_rgba(0,0,0,0.4)]">
-                                                    <p className="text-xs uppercase tracking-[0.2em] text-[#7a837e]">
-                                                        Contacto
-                                                    </p>
-                                                    <p className="mt-1 font-semibold text-[#203029]">
-                                                        {user.phone}
-                                                    </p>
-                                                </div>
+                                            <div className="flex flex-wrap gap-3">
+                                                {data.pills.map((item) => (
+                                                    <div
+                                                        key={item.label}
+                                                        className="rounded-2xl border border-[#e6ebdf] bg-white px-4 py-3 shadow-[0_16px_34px_-28px_rgba(0,0,0,0.4)]"
+                                                    >
+                                                        <p className="text-xs uppercase tracking-[0.2em] text-[#7a837e]">
+                                                            {item.label}
+                                                        </p>
+                                                        <p className="mt-1 font-semibold text-[#203029]">
+                                                            {item.value}
+                                                        </p>
+                                                    </div>
+                                                ))}
+
                                                 {entryRoute ? (
                                                     <Link
                                                         href={entryRoute}
                                                         className="inline-flex items-center rounded-2xl bg-[linear-gradient(180deg,#5c9653_0%,#427c46_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_38px_-26px_rgba(66,124,70,0.82)] transition hover:translate-y-[-1px]"
                                                     >
-                                                        {content.primaryLabel}
+                                                        Ir al modulo operativo
                                                     </Link>
                                                 ) : null}
                                             </div>
@@ -330,24 +292,31 @@ export default function Dashboard({ dashboardRole, entryRoute }) {
 
                                         <div className="rounded-[2rem] border border-[#e3eadf] bg-[linear-gradient(180deg,#f7f9f2_0%,#f0f4ea_100%)] p-5 shadow-[0_20px_56px_-42px_rgba(42,73,57,0.4)]">
                                             <div className="rounded-[1.7rem] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(241,246,235,0.9)_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-                                                <p className="text-sm font-semibold tracking-[-0.03em] text-[#2f6d3e]">
-                                                    {content.highlightTitle}
-                                                </p>
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <p className="text-sm font-semibold tracking-[-0.03em] text-[#2f6d3e]">
+                                                        {data.spotlight.title}
+                                                    </p>
+                                                    <div className="rounded-2xl bg-[#edf4e8] px-3 py-2 text-sm font-semibold text-[#4c7d4f]">
+                                                        {data.spotlight.statusLabel}
+                                                    </div>
+                                                </div>
 
                                                 <div className="mt-4 rounded-[1.5rem] border border-[#ecf0e7] bg-white/92 p-4">
                                                     <div className="flex items-center gap-3 text-[#25322d]">
                                                         <LocationIcon />
                                                         <p className="text-[1.9rem] font-semibold tracking-[-0.05em]">
-                                                            {content.highlightRoute}
-                                                            <span className="mx-2 text-[#86a98b]">→</span>
-                                                            {content.highlightRouteTo}
+                                                            {data.spotlight.route}
+                                                            <span className="mx-2 text-[#86a98b]">
+                                                                {'->'}
+                                                            </span>
+                                                            {data.spotlight.routeTo}
                                                         </p>
                                                     </div>
 
                                                     <div className="mt-4 flex items-center gap-3 text-[#5f6963]">
                                                         <CalendarIcon />
                                                         <p className="text-lg font-medium">
-                                                            {content.highlightDate}
+                                                            {data.spotlight.dateLabel}
                                                         </p>
                                                     </div>
 
@@ -359,14 +328,11 @@ export default function Dashboard({ dashboardRole, entryRoute }) {
                                                 <div className="mt-5 flex items-center justify-between rounded-[1.4rem] border border-[#e5ebdf] bg-white px-4 py-3">
                                                     <div>
                                                         <p className="text-xs uppercase tracking-[0.22em] text-[#7e867f]">
-                                                            {content.infoLabel}
+                                                            {data.spotlight.infoLabel}
                                                         </p>
                                                         <p className="mt-1 text-xl font-semibold tracking-[-0.04em] text-[#2b4737]">
-                                                            {content.infoValue}
+                                                            {data.spotlight.infoValue}
                                                         </p>
-                                                    </div>
-                                                    <div className="rounded-2xl bg-[#edf4e8] px-3 py-2 text-sm font-semibold text-[#4c7d4f]">
-                                                        Base
                                                     </div>
                                                 </div>
                                             </div>
@@ -374,26 +340,34 @@ export default function Dashboard({ dashboardRole, entryRoute }) {
                                     </div>
                                 </div>
 
-                                <section className="grid gap-4 lg:grid-cols-3">
-                                    {content.cards.map((card, index) => (
+                                <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                    {data.metrics.map((metric) => (
                                         <article
-                                            key={card.title}
-                                            className={`rounded-[1.8rem] border border-[#e6eadf] bg-[linear-gradient(180deg,#ffffff_0%,#f7f9f3_100%)] p-6 shadow-[0_24px_62px_-50px_rgba(42,73,57,0.4)] ${
-                                                index === 1
-                                                    ? 'lg:translate-y-4'
-                                                    : ''
-                                            }`}
+                                            key={metric.title}
+                                            className="rounded-[1.8rem] border border-[#e6eadf] bg-[linear-gradient(180deg,#ffffff_0%,#f7f9f3_100%)] p-6 shadow-[0_24px_62px_-50px_rgba(42,73,57,0.4)]"
                                         >
                                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7d856e]">
-                                                {card.eyebrow}
+                                                {metric.eyebrow}
                                             </p>
-                                            <h3 className="mt-4 text-[1.7rem] font-semibold leading-tight tracking-[-0.05em] text-[#203029]">
-                                                {card.title}
+                                            <h3 className="mt-4 text-lg font-semibold leading-tight tracking-[-0.03em] text-[#203029]">
+                                                {metric.title}
                                             </h3>
-                                            <p className="mt-4 text-sm leading-7 text-[#626a65]">
-                                                {card.body}
+                                            <p className="mt-4 text-[2rem] font-semibold tracking-[-0.05em] text-[#2f6d3e]">
+                                                {metric.value}
+                                            </p>
+                                            <p className="mt-3 text-sm leading-7 text-[#626a65]">
+                                                {metric.body}
                                             </p>
                                         </article>
+                                    ))}
+                                </section>
+
+                                <section className="grid gap-4 lg:grid-cols-2">
+                                    {data.lists.map((section) => (
+                                        <DataList
+                                            key={section.title}
+                                            section={section}
+                                        />
                                     ))}
                                 </section>
                             </div>

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Producer;
 use App\Models\Role;
+use App\Models\Service;
 use App\Models\TransportRequest;
 use App\Models\TransportRoute;
 use App\Models\Transporter;
@@ -168,6 +169,131 @@ class TransportRouteManagementTest extends TestCase
         $response->assertSee($visibleRoute->destination);
         $response->assertDontSee('Hidden Pending');
         $response->assertDontSee($pastRoute->origin);
+    }
+
+    public function test_producer_cannot_see_transporter_contact_before_request_is_accepted(): void
+    {
+        $route = $this->createPublishedRoute();
+        $route->load('transporter.user');
+        $route->transporter->user->update(['phone' => '3005556677']);
+
+        $producer = $this->createProducerUser('privacy@example.com');
+
+        $response = $this->actingAs($producer)->get(route('producer.routes.index'));
+
+        $response->assertOk();
+        $response->assertDontSee('3005556677');
+        $response->assertDontSee('wa.me/573005556677');
+    }
+
+    public function test_transporter_can_accept_request_and_enable_contact_for_involved_parties_only(): void
+    {
+        $route = $this->createPublishedRoute([
+            'available_capacity_kg' => 900,
+        ], 'contact-route@example.com');
+        $route->load('transporter.user');
+        $route->transporter->user->update(['phone' => '3001112233']);
+
+        $producer = $this->createProducerUser('contact-producer@example.com');
+        $producer->producerProfile->user->update(['phone' => '3002223344']);
+
+        $transportRequest = TransportRequest::query()->create([
+            'transport_route_id' => $route->id,
+            'producer_id' => $producer->producerProfile->id,
+            'cargo_weight_kg' => 400,
+            'product_type' => 'Cafe',
+            'delivery_destination' => 'Tunja',
+            'estimated_cost' => 210000,
+            'requested_at' => now(),
+            'status' => TransportRequest::STATUS_PENDING,
+        ]);
+
+        $transporterUser = $route->transporter->user;
+
+        $this->actingAs($transporterUser)
+            ->post(route('transporter.transport-requests.accept', $transportRequest))
+            ->assertRedirect();
+
+        $service = Service::query()->where('transport_request_id', $transportRequest->id)->first();
+
+        $this->assertNotNull($service);
+
+        $this->assertDatabaseHas('transport_requests', [
+            'id' => $transportRequest->id,
+            'status' => TransportRequest::STATUS_ACCEPTED,
+        ]);
+
+        $this->assertDatabaseHas('transport_routes', [
+            'id' => $route->id,
+            'available_capacity_kg' => 500,
+        ]);
+
+        $this->assertDatabaseHas('services', [
+            'id' => $service->id,
+            'status' => Service::STATUS_CONFIRMED,
+        ]);
+
+        $this->assertDatabaseHas('service_contacts', [
+            'service_id' => $service->id,
+            'shared_phone' => '3001112233',
+            'shared_whatsapp' => '573001112233',
+        ]);
+
+        $producerResponse = $this->actingAs($producer->fresh())
+            ->get(route('producer.routes.index'));
+
+        $producerResponse->assertOk();
+        $producerResponse->assertSee('3001112233');
+        $producerResponse->assertSee('573001112233');
+
+        $transporterResponse = $this->actingAs($transporterUser->fresh())
+            ->get(route('transporter.routes.index'));
+
+        $transporterResponse->assertOk();
+        $transporterResponse->assertSee('3002223344');
+        $transporterResponse->assertSee('573002223344');
+
+        $otherProducer = $this->createProducerUser('other-party@example.com');
+
+        $otherProducerResponse = $this->actingAs($otherProducer)
+            ->get(route('producer.routes.index'));
+
+        $otherProducerResponse->assertOk();
+        $otherProducerResponse->assertDontSee('3001112233');
+        $otherProducerResponse->assertDontSee('3002223344');
+    }
+
+    public function test_only_route_owner_can_accept_a_request(): void
+    {
+        $route = $this->createPublishedRoute([], 'owner-route@example.com');
+        $producer = $this->createProducerUser('locked-producer@example.com');
+
+        $transportRequest = TransportRequest::query()->create([
+            'transport_route_id' => $route->id,
+            'producer_id' => $producer->producerProfile->id,
+            'cargo_weight_kg' => 300,
+            'product_type' => 'Papa',
+            'delivery_destination' => 'Bogota',
+            'requested_at' => now(),
+            'status' => TransportRequest::STATUS_PENDING,
+        ]);
+
+        $otherTransporter = $this->createTransporterUser(
+            Transporter::STATUS_APPROVED,
+            'other-transporter@example.com',
+        );
+
+        $this->actingAs($otherTransporter)
+            ->post(route('transporter.transport-requests.accept', $transportRequest))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('transport_requests', [
+            'id' => $transportRequest->id,
+            'status' => TransportRequest::STATUS_PENDING,
+        ]);
+
+        $this->assertDatabaseCount('services', 0);
+        $this->assertDatabaseCount('service_contacts', 0);
     }
 
     private function createTransporterUser(string $validationStatus, string $email = 'transporter@example.com'): User

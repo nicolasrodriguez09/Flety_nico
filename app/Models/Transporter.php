@@ -38,6 +38,18 @@ class Transporter extends Model
         return $this->hasMany(TransportRoute::class);
     }
 
+    public function services(): HasMany
+    {
+        return $this->hasManyThrough(
+            Service::class,
+            TransportRoute::class,
+            'transporter_id',
+            'transport_route_id',
+            'id',
+            'id',
+        );
+    }
+
     public function isValidated(): bool
     {
         return $this->validation_status === self::STATUS_APPROVED;

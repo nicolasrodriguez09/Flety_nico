@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTransportRouteRequest;
+use App\Models\Service;
 use App\Models\TransportRoute;
+use App\Models\TransportRequest;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -43,6 +46,50 @@ class TransportRouteController extends Controller
                 ])
             : [];
 
+        $incomingRequests = $transporter
+            ? TransportRequest::query()
+                ->with([
+                    'route:id,origin,destination,departure_at,transporter_id',
+                    'producer.user:id,name',
+                ])
+                ->whereHas('route', fn (Builder $query) => $query->where('transporter_id', $transporter->id))
+                ->latest('requested_at')
+                ->get()
+                ->map(fn (TransportRequest $transportRequest) => [
+                    'id' => $transportRequest->id,
+                    'cargo_weight_kg' => (float) $transportRequest->cargo_weight_kg,
+                    'product_type' => $transportRequest->product_type,
+                    'delivery_destination' => $transportRequest->delivery_destination,
+                    'estimated_cost' => $transportRequest->estimated_cost !== null ? (float) $transportRequest->estimated_cost : null,
+                    'status' => $transportRequest->status,
+                    'requested_at' => $transportRequest->requested_at?->toIso8601String(),
+                    'route' => $transportRequest->route ? [
+                        'origin' => $transportRequest->route->origin,
+                        'destination' => $transportRequest->route->destination,
+                        'departure_at' => $transportRequest->route->departure_at?->toIso8601String(),
+                    ] : null,
+                    'producer' => $transportRequest->producer?->user ? [
+                        'name' => $transportRequest->producer->user->name,
+                    ] : null,
+                ])
+            : [];
+
+        $confirmedServices = $transporter
+            ? Service::query()
+                ->with([
+                    'contact',
+                    'route.vehicle:id,plate,vehicle_type',
+                    'transportRequest.producer.user:id,name,phone',
+                ])
+                ->where('status', Service::STATUS_CONFIRMED)
+                ->whereHas('route', fn (Builder $query) => $query->where('transporter_id', $transporter->id))
+                ->latest('confirmed_at')
+                ->get()
+                ->map(fn (Service $service) => $this->mapServiceForTransporter($service))
+                ->filter()
+                ->values()
+            : [];
+
         return Inertia::render('Routes/Index', [
             'role' => 'transportista',
             'transporterProfile' => $transporter ? [
@@ -61,6 +108,8 @@ class TransportRouteController extends Controller
             'myRoutes' => $myRoutes,
             'availableRoutes' => [],
             'myRequests' => [],
+            'incomingRequests' => $incomingRequests,
+            'confirmedServices' => $confirmedServices,
         ]);
     }
 
@@ -76,7 +125,7 @@ class TransportRouteController extends Controller
         $availableRoutes = TransportRoute::query()
             ->with([
                 'vehicle:id,plate,vehicle_type,capacity_kg',
-                'transporter.user:id,name,phone',
+                'transporter.user:id,name',
             ])
             ->where('status', TransportRoute::STATUS_PUBLISHED)
             ->where('departure_at', '>', now())
@@ -98,13 +147,12 @@ class TransportRouteController extends Controller
                 ] : null,
                 'transporter' => $route->transporter?->user ? [
                     'name' => $route->transporter->user->name,
-                    'phone' => $route->transporter->user->phone,
                 ] : null,
             ]);
 
         $myRequests = $producer
             ? $producer->transportRequests()
-                ->with(['route.vehicle:id,plate,vehicle_type', 'route.transporter.user:id,name,phone'])
+                ->with(['route.vehicle:id,plate,vehicle_type', 'route.transporter.user:id,name'])
                 ->latest('requested_at')
                 ->get()
                 ->map(fn ($transportRequest) => [
@@ -125,10 +173,26 @@ class TransportRouteController extends Controller
                         ] : null,
                         'transporter' => $transportRequest->route->transporter?->user ? [
                             'name' => $transportRequest->route->transporter->user->name,
-                            'phone' => $transportRequest->route->transporter->user->phone,
                         ] : null,
                     ] : null,
                 ])
+            : [];
+
+        $confirmedServices = $producer
+            ? Service::query()
+                ->with([
+                    'contact',
+                    'route.vehicle:id,plate,vehicle_type',
+                    'route.transporter.user:id,name,phone',
+                    'transportRequest.producer:id,user_id',
+                ])
+                ->where('status', Service::STATUS_CONFIRMED)
+                ->whereHas('transportRequest', fn (Builder $query) => $query->where('producer_id', $producer->id))
+                ->latest('confirmed_at')
+                ->get()
+                ->map(fn (Service $service) => $this->mapServiceForProducer($service))
+                ->filter()
+                ->values()
             : [];
 
         return Inertia::render('Routes/Index', [
@@ -138,6 +202,8 @@ class TransportRouteController extends Controller
             'myRoutes' => [],
             'availableRoutes' => $availableRoutes,
             'myRequests' => $myRequests,
+            'incomingRequests' => [],
+            'confirmedServices' => $confirmedServices,
         ]);
     }
 
@@ -157,5 +223,120 @@ class TransportRouteController extends Controller
         ]);
 
         return back()->with('success', 'Ruta publicada correctamente.');
+    }
+
+    private function mapServiceForTransporter(Service $service): ?array
+    {
+        if (! $service->contact?->enabled_at) {
+            return null;
+        }
+
+        $producer = $service->transportRequest?->producer?->user;
+
+        if (! $producer?->phone) {
+            return null;
+        }
+
+        return [
+            'id' => $service->id,
+            'status' => $service->status,
+            'confirmed_at' => $service->confirmed_at?->toIso8601String(),
+            'route' => $service->route ? [
+                'origin' => $service->route->origin,
+                'destination' => $service->route->destination,
+                'departure_at' => $service->route->departure_at?->toIso8601String(),
+                'vehicle' => $service->route->vehicle ? [
+                    'plate' => $service->route->vehicle->plate,
+                    'vehicle_type' => $service->route->vehicle->vehicle_type,
+                ] : null,
+            ] : null,
+            'request' => $service->transportRequest ? [
+                'product_type' => $service->transportRequest->product_type,
+                'cargo_weight_kg' => (float) $service->transportRequest->cargo_weight_kg,
+                'delivery_destination' => $service->transportRequest->delivery_destination,
+                'estimated_cost' => $service->transportRequest->estimated_cost !== null ? (float) $service->transportRequest->estimated_cost : null,
+            ] : null,
+            'counterpart' => [
+                'role' => 'productor',
+                'name' => $producer->name,
+                'phone' => $producer->phone,
+                'phone_url' => $this->telLink($producer->phone),
+                'whatsapp_url' => $this->whatsappLink($producer->phone),
+            ],
+        ];
+    }
+
+    private function mapServiceForProducer(Service $service): ?array
+    {
+        if (! $service->contact?->enabled_at) {
+            return null;
+        }
+
+        $transporter = $service->route?->transporter?->user;
+
+        if (! $transporter?->phone) {
+            return null;
+        }
+
+        return [
+            'id' => $service->id,
+            'status' => $service->status,
+            'confirmed_at' => $service->confirmed_at?->toIso8601String(),
+            'route' => $service->route ? [
+                'origin' => $service->route->origin,
+                'destination' => $service->route->destination,
+                'departure_at' => $service->route->departure_at?->toIso8601String(),
+                'vehicle' => $service->route->vehicle ? [
+                    'plate' => $service->route->vehicle->plate,
+                    'vehicle_type' => $service->route->vehicle->vehicle_type,
+                ] : null,
+            ] : null,
+            'request' => $service->transportRequest ? [
+                'product_type' => $service->transportRequest->product_type,
+                'cargo_weight_kg' => (float) $service->transportRequest->cargo_weight_kg,
+                'delivery_destination' => $service->transportRequest->delivery_destination,
+                'estimated_cost' => $service->transportRequest->estimated_cost !== null ? (float) $service->transportRequest->estimated_cost : null,
+            ] : null,
+            'counterpart' => [
+                'role' => 'transportista',
+                'name' => $transporter->name,
+                'phone' => $transporter->phone,
+                'phone_url' => $this->telLink($transporter->phone),
+                'whatsapp_url' => $this->whatsappLink($transporter->phone),
+            ],
+        ];
+    }
+
+    private function telLink(?string $phone): ?string
+    {
+        $digits = $this->digitsOnly($phone);
+
+        return $digits ? 'tel:'.$digits : null;
+    }
+
+    private function whatsappLink(?string $phone): ?string
+    {
+        $digits = $this->digitsOnly($phone);
+
+        if (! $digits) {
+            return null;
+        }
+
+        if (strlen($digits) === 10) {
+            $digits = '57'.$digits;
+        }
+
+        return 'https://wa.me/'.$digits;
+    }
+
+    private function digitsOnly(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+
+        return $digits ?: null;
     }
 }

@@ -28,4 +28,16 @@ class Producer extends Model
     {
         return $this->hasMany(TransportRequest::class);
     }
+
+    public function services(): HasMany
+    {
+        return $this->hasManyThrough(
+            Service::class,
+            TransportRequest::class,
+            'producer_id',
+            'transport_request_id',
+            'id',
+            'id',
+        );
+    }
 }
