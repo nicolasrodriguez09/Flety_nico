@@ -133,81 +133,172 @@ export default function Welcome({ auth, canLogin, canRegister }) {
             <Head title="Flety" />
 
             <div className="min-h-screen bg-[#fbfaf6] text-[#29463d]">
-                <header className="border-b border-[#ece7da] bg-white/95 shadow-[0_14px_40px_-34px_rgba(30,55,44,0.35)] backdrop-blur">
-                    <div className="mx-auto flex max-w-[1180px] items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-                        <Link href="/" className="flex items-center">
-                            <img
-                                src="/assets/landing/logo_flety.png"
-                                alt="Flety"
-                                className="h-12 w-auto sm:h-14"
-                            />
-                        </Link>
-
-                        <nav className="flex items-center gap-3 sm:gap-5">
-                            {user ? (
-                                <Link
-                                    href={route('dashboard')}
-                                    className="inline-flex items-center rounded-2xl bg-[#4f9547] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(79,149,71,0.65)] transition hover:bg-[#46863f]"
-                                >
-                                    Ir al panel
-                                </Link>
-                            ) : (
-                                <>
-                                    {canLogin && (
-                                        <Link
-                                            href={route('login')}
-                                            className="text-sm font-medium text-[#2b3f39] transition hover:text-[#4f9547]"
-                                        >
-                                            Iniciar sesion
-                                        </Link>
-                                    )}
-
-                                    {canRegister && (
-                                        <Link
-                                            href={registerUrl}
-                                            className="inline-flex items-center overflow-hidden rounded-2xl bg-[#4f9547] text-sm font-semibold text-white shadow-[0_16px_34px_-20px_rgba(79,149,71,0.7)] transition hover:bg-[#478640]"
-                                        >
-                                            <span className="px-5 py-3">Registrate</span>
-                                            <span className="flex h-full items-center border-l border-white/25 px-3 py-3 text-white/90">
-                                                <ArrowRightIcon />
-                                            </span>
-                                        </Link>
-                                    )}
-                                </>
-                            )}
-                        </nav>
-                    </div>
-                </header>
-
-                <main className="mx-auto max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pb-24">
-                    <section className="relative overflow-hidden rounded-[34px] shadow-[0_28px_80px_-42px_rgba(61,97,79,0.45)]">
+                <main className="w-full pb-16 pt-0 lg:pb-24">
+                    <section className="relative overflow-hidden border border-[#dbe5d6] shadow-[0_28px_80px_-42px_rgba(61,97,79,0.45)]">
                         <img
-                            src="/assets/landing/hero_escena.png"
-                            alt="Flety conecta rutas de retorno con productores"
-                            className="block w-full rounded-[34px]"
+                            src="/assets/landing/fondo.png"
+                            alt="Fondo principal de Flety"
+                            className="absolute inset-0 h-full w-full object-cover"
                         />
+                        <div className="absolute inset-0 bg-[linear-gradient(105deg,rgba(21,42,36,0.88)_0%,rgba(27,57,46,0.78)_38%,rgba(33,69,55,0.38)_63%,rgba(255,255,255,0)_100%)]" />
+                        <div className="animate-drift-soft absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,222,140,0.18),rgba(255,255,255,0)_32%)]" />
+                        <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6 lg:right-8 lg:top-8">
+                            <nav className="animate-fade-left flex flex-wrap items-center justify-end gap-3">
+                                {user ? (
+                                    <Link
+                                        href={route('dashboard')}
+                                        className="hover-lift-soft inline-flex items-center rounded-2xl bg-[#4f9547] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-26px_rgba(79,149,71,0.75)] transition hover:bg-[#46863f]"
+                                    >
+                                        Ir al panel
+                                    </Link>
+                                ) : (
+                                    <>
+                                        {canLogin && (
+                                            <Link
+                                                href={route('login')}
+                                                className="hover-lift-soft inline-flex items-center rounded-2xl border border-white/16 bg-white/10 px-5 py-3 text-sm font-medium text-white shadow-[0_18px_40px_-30px_rgba(0,0,0,0.55)] backdrop-blur transition hover:bg-white/14"
+                                            >
+                                                Iniciar sesion
+                                            </Link>
+                                        )}
 
-                        {!user && canRegister && (
-                            <Link
-                                href={registerUrl}
-                                aria-label="Registrate"
-                                className="absolute left-[6.7%] top-[55.8%] block h-[8.2%] w-[17.8%] rounded-[18px] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#4f9547]/35"
-                            />
-                        )}
+                                        {canRegister && (
+                                            <Link
+                                                href={registerUrl}
+                                                className="hover-lift-soft animate-glow-soft inline-flex items-center gap-3 rounded-2xl bg-[#4f9547] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_-26px_rgba(79,149,71,0.8)] transition hover:bg-[#46863f]"
+                                            >
+                                                Registrate
+                                                <ArrowRightIcon />
+                                            </Link>
+                                        )}
+                                    </>
+                                )}
+                            </nav>
+                        </div>
 
-                        <a
-                            href="#mas-informacion"
-                            aria-label="Mas informacion"
-                            className="absolute left-[25.8%] top-[55.8%] block h-[8.2%] w-[20.4%] rounded-[18px] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#4f9547]/25"
-                        />
+                        <div className="relative z-10 grid min-h-[560px] items-end gap-10 px-6 pb-8 pt-8 sm:px-8 sm:pb-10 sm:pt-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-12 lg:pb-12 lg:pt-12">
+                            <div className="max-w-[640px] space-y-8">
+                                <div className="animate-fade-up inline-flex items-center gap-4 rounded-[28px] border border-white/14 bg-white/10 px-4 py-4 shadow-[0_24px_60px_-42px_rgba(0,0,0,0.6)] backdrop-blur">
+                                    <div className="rounded-[22px] bg-white px-4 py-3 shadow-[0_14px_38px_-28px_rgba(0,0,0,0.45)]">
+                                        <img
+                                            src="/assets/landing/logo_flety.png"
+                                            alt="Logo Flety"
+                                            className="h-12 w-auto sm:h-14"
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#ffe9a8]">
+                                            Marketplace PWA
+                                        </p>
+                                        <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white sm:text-2xl">
+                                            Flety
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-5">
+                                    <p className="animate-fade-up stagger-1 inline-flex rounded-full border border-white/14 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#f8efc7] backdrop-blur">
+                                        Logistica agricola inteligente
+                                    </p>
+                                    <h1 className="animate-fade-up stagger-2 max-w-[12ch] text-[2.8rem] font-semibold leading-[0.95] tracking-[-0.06em] text-white sm:text-[4rem] lg:text-[4.9rem]">
+                                        Conecta rutas libres con productores que necesitan mover carga
+                                    </h1>
+                                    <p className="animate-fade-up stagger-3 max-w-[36rem] text-[1.05rem] leading-8 text-white/82 sm:text-[1.16rem]">
+                                        Aprovecha viajes de retorno, reduce costos
+                                        de transporte y conecta oferta y demanda en
+                                        una sola plataforma pensada para el sector
+                                        rural.
+                                    </p>
+                                </div>
+
+                                <div className="animate-fade-up stagger-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+                                    {user ? (
+                                        <Link
+                                            href={route('dashboard')}
+                                            className="hover-lift-soft inline-flex items-center justify-center rounded-2xl bg-[linear-gradient(180deg,#4f9547_0%,#3f7e40_100%)] px-7 py-4 text-base font-semibold text-white shadow-[0_22px_50px_-30px_rgba(79,149,71,0.9)] transition hover:translate-y-[-1px] hover:brightness-[1.03]"
+                                        >
+                                            Ir al panel
+                                        </Link>
+                                    ) : (
+                                        canRegister && (
+                                            <Link
+                                                href={registerUrl}
+                                                className="hover-lift-soft animate-glow-soft inline-flex items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(180deg,#5aa24f_0%,#3f7e40_100%)] px-7 py-4 text-base font-semibold text-white shadow-[0_22px_50px_-30px_rgba(79,149,71,0.9)] transition hover:translate-y-[-1px] hover:brightness-[1.03]"
+                                            >
+                                                Registrate
+                                                <ArrowRightIcon />
+                                            </Link>
+                                        )
+                                    )}
+
+                                    <a
+                                        href="#mas-informacion"
+                                        className="hover-lift-soft inline-flex items-center justify-center rounded-2xl border border-white/18 bg-white/10 px-7 py-4 text-base font-semibold text-white shadow-[0_22px_50px_-34px_rgba(0,0,0,0.55)] backdrop-blur transition hover:bg-white/14"
+                                    >
+                                        Mas informacion
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div className="animate-fade-left stagger-2 flex justify-start lg:justify-end">
+                                <div className="grid w-full max-w-[360px] gap-4">
+                                    <article className="hover-lift-soft rounded-[28px] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.08)_100%)] p-5 text-white shadow-[0_24px_70px_-46px_rgba(0,0,0,0.75)] backdrop-blur">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f7efc9]">
+                                            Beneficio real
+                                        </p>
+                                        <p className="mt-3 text-2xl font-semibold tracking-[-0.04em]">
+                                            Menos viajes vacios, mas oportunidades
+                                        </p>
+                                    </article>
+
+                                    <article className="hover-lift-soft rounded-[28px] border border-white/14 bg-[linear-gradient(180deg,rgba(255,248,223,0.94)_0%,rgba(247,241,216,0.86)_100%)] p-5 text-[#2e463d] shadow-[0_24px_70px_-46px_rgba(0,0,0,0.55)]">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#7d6a2f]">
+                                            En un vistazo
+                                        </p>
+                                        <div className="mt-4 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+                                            <div>
+                                                <p className="text-3xl font-semibold tracking-[-0.05em]">
+                                                    3
+                                                </p>
+                                                <p className="mt-1 text-sm leading-6 text-[#58665f]">
+                                                    roles operativos bien definidos
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-3xl font-semibold tracking-[-0.05em]">
+                                                    1
+                                                </p>
+                                                <p className="mt-1 text-sm leading-6 text-[#58665f]">
+                                                    flujo unificado para rutas y solicitudes
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-3xl font-semibold tracking-[-0.05em]">
+                                                    100%
+                                                </p>
+                                                <p className="mt-1 text-sm leading-6 text-[#58665f]">
+                                                    enfocado en transporte agricola
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            </div>
+                        </div>
                     </section>
 
-                    <section className="relative -mt-3 rounded-[34px] bg-white px-6 pb-12 pt-10 shadow-[0_28px_80px_-50px_rgba(61,97,79,0.32)] sm:px-8 lg:px-10">
+                    <section className="animate-fade-up relative -mt-3 rounded-[34px] bg-white px-6 pb-12 pt-10 shadow-[0_28px_80px_-50px_rgba(61,97,79,0.32)] sm:px-8 lg:px-10">
                         <div className="grid gap-8 text-center md:grid-cols-3 md:gap-10">
-                            {features.map((feature) => (
+                            {features.map((feature, index) => (
                                 <article
                                     key={feature.title}
-                                    className="flex flex-col items-center"
+                                    className={`animate-fade-up hover-lift-soft flex flex-col items-center ${
+                                        index === 0
+                                            ? 'stagger-1'
+                                            : index === 1
+                                              ? 'stagger-2'
+                                              : 'stagger-3'
+                                    }`}
                                 >
                                     <img
                                         src={feature.icon}
@@ -227,24 +318,24 @@ export default function Welcome({ auth, canLogin, canRegister }) {
 
                     <section
                         id="mas-informacion"
-                        className="relative mt-10 overflow-hidden rounded-[34px] border border-[#efe8dc] bg-[radial-gradient(circle_at_top,rgba(255,255,255,1),rgba(247,244,236,1)_62%,rgba(245,240,232,1)_100%)] px-6 py-14 shadow-[0_24px_70px_-48px_rgba(61,97,79,0.35)] sm:px-8 lg:px-12 lg:py-16"
+                        className="animate-fade-up relative mt-10 overflow-hidden rounded-[34px] border border-[#efe8dc] bg-[radial-gradient(circle_at_top,rgba(255,255,255,1),rgba(247,244,236,1)_62%,rgba(245,240,232,1)_100%)] px-6 py-14 shadow-[0_24px_70px_-48px_rgba(61,97,79,0.35)] sm:px-8 lg:px-12 lg:py-16"
                     >
-                        <div className="absolute left-1/2 top-8 h-44 w-44 -translate-x-1/2 rounded-full bg-[#fff7d5] opacity-70 blur-3xl" />
+                        <div className="animate-drift-soft absolute left-1/2 top-8 h-44 w-44 -translate-x-1/2 rounded-full bg-[#fff7d5] opacity-70 blur-3xl" />
                         <div className="relative text-center">
-                            <h2 className="text-[2.45rem] font-semibold tracking-[-0.04em] text-[#23453c] sm:text-[2.9rem]">
+                            <h2 className="animate-fade-up text-[2.45rem] font-semibold tracking-[-0.04em] text-[#23453c] sm:text-[2.9rem]">
                                 Nuevo en Flety?
                             </h2>
-                            <p className="mt-3 text-[2rem] font-semibold tracking-[-0.03em] text-[#2d4c43] sm:text-[2.35rem]">
+                            <p className="animate-fade-up stagger-1 mt-3 text-[2rem] font-semibold tracking-[-0.03em] text-[#2d4c43] sm:text-[2.35rem]">
                                 Conecta y transporta en solo unos pasos
                             </p>
-                            <p className="mt-5 text-[1.1rem] text-[#616660] sm:text-[1.25rem]">
+                            <p className="animate-fade-up stagger-2 mt-5 text-[1.1rem] text-[#616660] sm:text-[1.25rem]">
                                 Empieza creando una cuenta:
                             </p>
 
                             <div className="mt-8 grid gap-4 sm:mx-auto sm:max-w-[640px] sm:grid-cols-2">
                                 <Link
                                     href={transporterRegisterUrl}
-                                    className="inline-flex items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(180deg,#ffa73e_0%,#ff8a1d_100%)] px-6 py-4 text-[1.1rem] font-semibold text-white shadow-[0_18px_42px_-28px_rgba(255,138,29,0.8)] transition hover:translate-y-[-1px]"
+                                    className="animate-fade-up stagger-3 hover-lift-soft inline-flex items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(180deg,#ffa73e_0%,#ff8a1d_100%)] px-6 py-4 text-[1.1rem] font-semibold text-white shadow-[0_18px_42px_-28px_rgba(255,138,29,0.8)] transition hover:translate-y-[-1px]"
                                 >
                                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/12">
                                         <TruckMiniIcon />
@@ -254,7 +345,7 @@ export default function Welcome({ auth, canLogin, canRegister }) {
 
                                 <Link
                                     href={producerRegisterUrl}
-                                    className="inline-flex items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(180deg,#ffd24d_0%,#ffb92c_100%)] px-6 py-4 text-[1.1rem] font-semibold text-white shadow-[0_18px_42px_-28px_rgba(255,185,44,0.8)] transition hover:translate-y-[-1px]"
+                                    className="animate-fade-up stagger-4 hover-lift-soft inline-flex items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(180deg,#ffd24d_0%,#ffb92c_100%)] px-6 py-4 text-[1.1rem] font-semibold text-white shadow-[0_18px_42px_-28px_rgba(255,185,44,0.8)] transition hover:translate-y-[-1px]"
                                 >
                                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/12">
                                         <LeafMiniIcon />
@@ -266,10 +357,16 @@ export default function Welcome({ auth, canLogin, canRegister }) {
                     </section>
 
                     <section className="mt-10 grid gap-5 md:grid-cols-3">
-                        {features.map((feature) => (
+                        {features.map((feature, index) => (
                             <article
                                 key={`${feature.title}-card`}
-                                className="rounded-[26px] border border-[#eee8dc] bg-white p-6 shadow-[0_22px_60px_-48px_rgba(47,80,63,0.42)]"
+                                className={`animate-fade-up hover-lift-soft rounded-[26px] border border-[#eee8dc] bg-white p-6 shadow-[0_22px_60px_-48px_rgba(47,80,63,0.42)] ${
+                                    index === 0
+                                        ? 'stagger-1'
+                                        : index === 1
+                                          ? 'stagger-2'
+                                          : 'stagger-3'
+                                }`}
                             >
                                 <div className="flex items-start gap-4">
                                     <img

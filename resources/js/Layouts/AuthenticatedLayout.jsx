@@ -25,7 +25,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
     return (
         <div className="min-h-screen bg-[linear-gradient(180deg,#f7f4ea_0%,#eef4ea_46%,#f6f8f2_100%)]">
-            <nav className="border-b border-emerald-100 bg-white/85 backdrop-blur">
+            <nav className="border-b border-emerald-100 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
@@ -80,12 +80,12 @@ export default function AuthenticatedLayout({ header, children }) {
                                         <span className="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
+                                                className="inline-flex items-center gap-2 rounded-2xl border border-[#dfe7da] bg-white px-4 py-2.5 text-sm font-semibold leading-4 text-[#32473d] shadow-[0_16px_32px_-26px_rgba(0,0,0,0.38)] transition duration-150 ease-in-out hover:border-[#cfdac8] hover:bg-[#fbfdf9] focus:outline-none"
                                             >
                                                 {user.name}
 
                                                 <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
+                                                    className="h-4 w-4 text-[#5e7569]"
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 20 20"
                                                     fill="currentColor"
@@ -100,9 +100,12 @@ export default function AuthenticatedLayout({ header, children }) {
                                         </span>
                                     </Dropdown.Trigger>
 
-                                    <Dropdown.Content>
+                                    <Dropdown.Content
+                                        contentClasses="overflow-hidden rounded-2xl border border-[#dfe7da] bg-white py-2 shadow-[0_26px_60px_-34px_rgba(0,0,0,0.38)]"
+                                    >
                                         <Dropdown.Link
                                             href={route('profile.edit')}
+                                            className="px-4 py-3 font-medium text-[#32473d] hover:bg-[#f3f8ef] focus:bg-[#f3f8ef]"
                                         >
                                             Perfil
                                         </Dropdown.Link>
@@ -110,6 +113,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                             href={route('logout')}
                                             method="post"
                                             as="button"
+                                            className="px-4 py-3 font-medium text-[#32473d] hover:bg-[#f8f3ef] focus:bg-[#f8f3ef]"
                                         >
                                             Cerrar sesion
                                         </Dropdown.Link>
@@ -221,7 +225,7 @@ export default function AuthenticatedLayout({ header, children }) {
             </nav>
 
             {header && (
-                <header className="border-b border-white/60 bg-white/60 shadow-sm backdrop-blur">
+                <header className="border-b border-[#edf1ea] bg-white shadow-sm">
                     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                         {header}
                     </div>

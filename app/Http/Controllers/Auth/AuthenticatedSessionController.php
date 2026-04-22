@@ -33,9 +33,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $user = $request->user();
+        $request->session()->forget('url.intended');
 
-        return redirect()->intended(route($user->homeRouteName(), absolute: false));
+        return redirect()->route('auth.loading');
     }
 
     /**

@@ -1,3 +1,177 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+@layer utilities {
+    @keyframes fade-up {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 32px, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    @keyframes fade-right {
+        from {
+            opacity: 0;
+            transform: translate3d(-34px, 0, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    @keyframes fade-left {
+        from {
+            opacity: 0;
+            transform: translate3d(34px, 0, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    @keyframes scale-in-soft {
+        from {
+            opacity: 0;
+            transform: scale(0.96);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes float-soft {
+        0%,
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+
+        50% {
+            transform: translate3d(0, -10px, 0);
+        }
+    }
+
+    @keyframes drift-soft {
+        0%,
+        100% {
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+
+        50% {
+            transform: translate3d(12px, -10px, 0) scale(1.03);
+        }
+    }
+
+    @keyframes glow-soft {
+        0%,
+        100% {
+            box-shadow: 0 18px 40px -28px rgba(79, 149, 71, 0.26);
+        }
+
+        50% {
+            box-shadow: 0 26px 56px -28px rgba(255, 222, 140, 0.24);
+        }
+    }
+
+    .animate-fade-up {
+        animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+    }
+
+    .animate-fade-right {
+        animation: fade-right 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+    }
+
+    .animate-fade-left {
+        animation: fade-left 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+    }
+
+    .animate-scale-in-soft {
+        animation: scale-in-soft 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+    }
+
+    .animate-float-soft {
+        animation: float-soft 6.2s ease-in-out infinite;
+        will-change: transform;
+    }
+
+    .animate-drift-soft {
+        animation: drift-soft 9s ease-in-out infinite;
+        will-change: transform;
+    }
+
+    .animate-glow-soft {
+        animation: glow-soft 5.5s ease-in-out infinite;
+    }
+
+    .stagger-1 {
+        animation-delay: 0.12s;
+    }
+
+    .stagger-2 {
+        animation-delay: 0.22s;
+    }
+
+    .stagger-3 {
+        animation-delay: 0.32s;
+    }
+
+    .stagger-4 {
+        animation-delay: 0.42s;
+    }
+
+    .hover-lift-soft {
+        transition:
+            transform 220ms ease,
+            box-shadow 220ms ease,
+            filter 220ms ease;
+        will-change: transform;
+    }
+
+    .hover-lift-soft:hover {
+        transform: translate3d(0, -4px, 0);
+    }
+
+    .hover-lift-soft:focus-visible {
+        transform: translate3d(0, -2px, 0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .animate-fade-up,
+        .animate-fade-right,
+        .animate-fade-left,
+        .animate-scale-in-soft,
+        .animate-float-soft,
+        .animate-drift-soft,
+        .animate-glow-soft {
+            animation: none !important;
+        }
+
+        .hover-lift-soft,
+        .hover-lift-soft:hover,
+        .hover-lift-soft:focus-visible {
+            transform: none !important;
+            transition: none !important;
+        }
+    }
+}
