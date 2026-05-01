@@ -28,6 +28,10 @@ export default function Register({ roles, selectedRole }) {
         email: '',
         phone: '',
         role: selectedRole ?? '',
+        identity_document: '',
+        driver_license: '',
+        identity_document_image: null,
+        driver_license_image: null,
         plate: '',
         vehicle_type: '',
         brand: '',
@@ -172,17 +176,94 @@ export default function Register({ roles, selectedRole }) {
                                 Perfil de transportista
                             </p>
                             <h3 className="text-lg font-semibold text-slate-900">
-                                Datos del vehiculo
+                                Datos y documentos de validacion
                             </h3>
                             <p className="text-sm leading-6 text-slate-600">
-                                Registra el primer vehiculo con el que vas a
-                                ofrecer capacidad de carga. Administracion debe
-                                revisar los soportes antes de aprobarlo para
-                                publicar rutas.
+                                Administracion revisa tu documento, licencia y
+                                soportes del primer vehiculo antes de habilitar
+                                la publicacion de rutas.
                             </p>
                         </div>
 
                         <div className="mt-5 space-y-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <InputLabel
+                                        htmlFor="identity_document"
+                                        value="Documento de identidad"
+                                    />
+
+                                    <TextInput
+                                        id="identity_document"
+                                        name="identity_document"
+                                        value={data.identity_document}
+                                        className="mt-2 block w-full"
+                                        autoComplete="off"
+                                        placeholder="Numero de cedula"
+                                        onChange={(e) =>
+                                            setData(
+                                                'identity_document',
+                                                e.target.value,
+                                            )
+                                        }
+                                        required={isTransporter}
+                                    />
+
+                                    <InputError
+                                        message={errors.identity_document}
+                                        className="mt-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <InputLabel
+                                        htmlFor="driver_license"
+                                        value="Licencia de conduccion"
+                                    />
+
+                                    <TextInput
+                                        id="driver_license"
+                                        name="driver_license"
+                                        value={data.driver_license}
+                                        className="mt-2 block w-full"
+                                        autoComplete="off"
+                                        placeholder="Numero de licencia"
+                                        onChange={(e) =>
+                                            setData(
+                                                'driver_license',
+                                                e.target.value,
+                                            )
+                                        }
+                                        required={isTransporter}
+                                    />
+
+                                    <InputError
+                                        message={errors.driver_license}
+                                        className="mt-2"
+                                    />
+                                </div>
+                            </div>
+
+                            <FileInput
+                                id="identity_document_image"
+                                label="Imagen del documento de identidad"
+                                required={isTransporter}
+                                error={errors.identity_document_image}
+                                onChange={(file) =>
+                                    setData('identity_document_image', file)
+                                }
+                            />
+
+                            <FileInput
+                                id="driver_license_image"
+                                label="Imagen de la licencia de conduccion"
+                                required={isTransporter}
+                                error={errors.driver_license_image}
+                                onChange={(file) =>
+                                    setData('driver_license_image', file)
+                                }
+                            />
+
                             <div>
                                 <InputLabel htmlFor="plate" value="Placa" />
 

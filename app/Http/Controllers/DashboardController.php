@@ -277,13 +277,6 @@ class DashboardController extends Controller
             ->where('validation_status', Transporter::STATUS_PENDING)
             ->count();
 
-        $pendingTransporters = Transporter::query()
-            ->with('user:id,name,phone')
-            ->where('validation_status', Transporter::STATUS_PENDING)
-            ->latest()
-            ->take(4)
-            ->get();
-
         $pendingVehicles = Vehicle::query()
             ->with('transporter.user:id,name,phone')
             ->where('status', Vehicle::STATUS_PENDING)
@@ -391,16 +384,6 @@ class DashboardController extends Controller
                                         'type' => 'reject',
                                     ],
                                 ],
-                            ])
-                            ->values(),
-                    ],
-                    [
-                        'title' => 'Transportistas pendientes por validar',
-                        'emptyMessage' => 'No hay transportistas pendientes por revisar.',
-                        'items' => $pendingTransporters
-                            ->map(fn (Transporter $transporter) => [
-                                'title' => $transporter->user?->name ?? 'Transportista',
-                                'meta' => $transporter->user?->phone ?? 'Sin telefono',
                             ])
                             ->values(),
                     ],

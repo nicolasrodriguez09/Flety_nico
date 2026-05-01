@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\DocumentVerification;
 use App\Models\Producer;
 use App\Models\Role;
 use App\Models\Transporter;
@@ -57,6 +58,32 @@ class RegisteredUserController extends Controller
                 'required',
                 'string',
                 Rule::exists('roles', 'slug')->where(fn ($query) => $query->whereIn('slug', Role::publicRegistrationSlugs())),
+            ],
+            'identity_document' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('transporters', 'identity_document'),
+            ],
+            'driver_license' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('transporters', 'driver_license'),
+            ],
+            'identity_document_image' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'image',
+                'max:4096',
+            ],
+            'driver_license_image' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'image',
+                'max:4096',
             ],
             'plate' => [
                 Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
@@ -167,6 +194,25 @@ class RegisteredUserController extends Controller
             if ($role->slug === Role::TRANSPORTER) {
                 $transporter = Transporter::create([
                     'user_id' => $user->id,
+                    'identity_document' => $request->string('identity_document')->trim()->toString(),
+                    'driver_license' => $request->string('driver_license')->trim()->toString(),
+                    'validation_status' => Transporter::STATUS_PENDING,
+                ]);
+
+                DocumentVerification::create([
+                    'transporter_id' => $transporter->id,
+                    'document_type' => DocumentVerification::TYPE_IDENTITY_DOCUMENT,
+                    'file_path' => $request->file('identity_document_image')->store('transporter-documents'),
+                    'review_status' => DocumentVerification::STATUS_PENDING,
+                    'uploaded_at' => now(),
+                ]);
+
+                DocumentVerification::create([
+                    'transporter_id' => $transporter->id,
+                    'document_type' => DocumentVerification::TYPE_DRIVER_LICENSE,
+                    'file_path' => $request->file('driver_license_image')->store('transporter-documents'),
+                    'review_status' => DocumentVerification::STATUS_PENDING,
+                    'uploaded_at' => now(),
                 ]);
 
                 Vehicle::create([

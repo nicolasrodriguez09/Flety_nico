@@ -159,7 +159,6 @@ class DashboardDataTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
         $response->assertOk();
-        $response->assertSee('Transportista Pendiente');
         $response->assertSee('PEN123');
         $response->assertSee('Hino');
         $response->assertSee('Sogamoso');

@@ -12,7 +12,9 @@ class Transporter extends Model
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
@@ -31,6 +33,11 @@ class Transporter extends Model
     public function vehicles(): HasMany
     {
         return $this->hasMany(Vehicle::class);
+    }
+
+    public function documentVerifications(): HasMany
+    {
+        return $this->hasMany(DocumentVerification::class);
     }
 
     public function routes(): HasMany
