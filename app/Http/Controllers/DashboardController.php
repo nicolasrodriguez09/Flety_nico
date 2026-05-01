@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Producer;
 use App\Models\Role;
 use App\Models\Service;
+use App\Models\Transporter;
 use App\Models\TransportRequest;
 use App\Models\TransportRoute;
-use App\Models\Transporter;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -282,6 +284,13 @@ class DashboardController extends Controller
             ->take(4)
             ->get();
 
+        $pendingVehicles = Vehicle::query()
+            ->with('transporter.user:id,name,phone')
+            ->where('status', Vehicle::STATUS_PENDING)
+            ->latest()
+            ->take(4)
+            ->get();
+
         $recentRoutes = TransportRoute::query()
             ->latest('created_at')
             ->take(4)
@@ -289,6 +298,9 @@ class DashboardController extends Controller
 
         $transportersCount = Transporter::query()->count();
         $producersCount = Producer::query()->count();
+        $pendingVehiclesCount = Vehicle::query()
+            ->where('status', Vehicle::STATUS_PENDING)
+            ->count();
         $publishedRoutesCount = TransportRoute::query()
             ->where('status', TransportRoute::STATUS_PUBLISHED)
             ->count();
@@ -310,17 +322,17 @@ class DashboardController extends Controller
                 ],
                 'pills' => [
                     ['label' => 'Usuarios', 'value' => (string) User::query()->count()],
-                    ['label' => 'Pendientes', 'value' => (string) $pendingTransportersCount],
+                    ['label' => 'Pendientes', 'value' => (string) ($pendingTransportersCount + $pendingVehiclesCount)],
                     ['label' => 'Servicios', 'value' => (string) $confirmedServicesCount],
                 ],
-                'spotlight' => $pendingTransporters->first()
+                'spotlight' => $pendingVehicles->first()
                     ? [
-                        'title' => 'Siguiente validacion sugerida',
-                        'route' => $pendingTransporters->first()->user?->name ?? 'Transportista',
-                        'routeTo' => 'pendiente',
-                        'dateLabel' => 'Telefono: '.($pendingTransporters->first()->user?->phone ?? 'Sin telefono'),
+                        'title' => 'Siguiente vehiculo por revisar',
+                        'route' => $pendingVehicles->first()->plate,
+                        'routeTo' => $pendingVehicles->first()->brand ?: 'pendiente',
+                        'dateLabel' => 'Transportista: '.($pendingVehicles->first()->transporter?->user?->name ?? 'Sin nombre'),
                         'infoLabel' => 'Estado',
-                        'infoValue' => $this->humanizeStatus($pendingTransporters->first()->validation_status),
+                        'infoValue' => $this->humanizeStatus($pendingVehicles->first()->status),
                         'statusLabel' => 'Revision necesaria',
                     ]
                     : [
@@ -347,18 +359,41 @@ class DashboardController extends Controller
                     ],
                     [
                         'eyebrow' => 'Operacion',
+                        'title' => 'Vehiculos pendientes',
+                        'value' => (string) $pendingVehiclesCount,
+                        'body' => 'Vehiculos esperando revision documental.',
+                    ],
+                    [
+                        'eyebrow' => 'Operacion',
                         'title' => 'Rutas publicadas',
                         'value' => (string) $publishedRoutesCount,
                         'body' => 'Rutas disponibles actualmente en la plataforma.',
                     ],
-                    [
-                        'eyebrow' => 'Operacion',
-                        'title' => 'Solicitudes pendientes',
-                        'value' => (string) $pendingRequestsCount,
-                        'body' => 'Solicitudes que aun esperan respuesta.',
-                    ],
                 ],
                 'lists' => [
+                    [
+                        'title' => 'Vehiculos pendientes por revisar',
+                        'emptyMessage' => 'No hay vehiculos pendientes por revisar.',
+                        'items' => $pendingVehicles
+                            ->map(fn (Vehicle $vehicle) => [
+                                'title' => $vehicle->plate.' · '.trim(($vehicle->brand ?? '').' '.($vehicle->model ?? '')),
+                                'meta' => ($vehicle->transporter?->user?->name ?? 'Transportista').' · Seguro hasta '.$this->formatDate($vehicle->insurance_expires_at).' · Tecno hasta '.$this->formatDate($vehicle->technical_review_expires_at),
+                                'links' => $this->vehicleDocumentLinks($vehicle),
+                                'actions' => [
+                                    [
+                                        'label' => 'Aprobar',
+                                        'href' => route('admin.vehicles.approve', $vehicle),
+                                        'type' => 'approve',
+                                    ],
+                                    [
+                                        'label' => 'Rechazar',
+                                        'href' => route('admin.vehicles.reject', $vehicle),
+                                        'type' => 'reject',
+                                    ],
+                                ],
+                            ])
+                            ->values(),
+                    ],
                     [
                         'title' => 'Transportistas pendientes por validar',
                         'emptyMessage' => 'No hay transportistas pendientes por revisar.',
@@ -415,5 +450,34 @@ class DashboardController extends Controller
         }
 
         return $value->timezone(config('app.timezone'))->format('d/m/Y H:i');
+    }
+
+    private function formatDate($value): string
+    {
+        if (! $value) {
+            return 'Sin fecha';
+        }
+
+        return $value->format('d/m/Y');
+    }
+
+    /**
+     * @return array<int, array{label: string, href: string}>
+     */
+    private function vehicleDocumentLinks(Vehicle $vehicle): array
+    {
+        return collect([
+            ['label' => 'Foto vehiculo', 'path' => $vehicle->vehicle_photo_path],
+            ['label' => 'Licencia transito', 'path' => $vehicle->transit_license_image_path],
+            ['label' => 'Seguro', 'path' => $vehicle->insurance_image_path],
+            ['label' => 'Tecno-mecanica', 'path' => $vehicle->technical_review_image_path],
+        ])
+            ->filter(fn (array $document) => filled($document['path']))
+            ->map(fn (array $document) => [
+                'label' => $document['label'],
+                'href' => Storage::disk('public')->url($document['path']),
+            ])
+            ->values()
+            ->all();
     }
 }

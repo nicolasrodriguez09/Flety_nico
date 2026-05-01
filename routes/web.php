@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\AuthLoadingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleRedirectController;
 use App\Http\Controllers\TransportRequestController;
 use App\Http\Controllers\TransportRouteController;
 use App\Http\Controllers\VehicleController;
-use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -64,6 +64,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/administrador/panel', [DashboardController::class, 'admin'])
         ->middleware(['verified', 'role:administrador'])
         ->name('admin.dashboard');
+    Route::post('/administrador/vehiculos/{vehicle}/aprobar', [VehicleController::class, 'approve'])
+        ->middleware(['verified', 'role:administrador'])
+        ->name('admin.vehicles.approve');
+    Route::post('/administrador/vehiculos/{vehicle}/rechazar', [VehicleController::class, 'reject'])
+        ->middleware(['verified', 'role:administrador'])
+        ->name('admin.vehicles.reject');
 });
 
 require __DIR__.'/auth.php';

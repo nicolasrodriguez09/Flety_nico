@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTransportRouteRequest;
 use App\Models\Service;
-use App\Models\TransportRoute;
 use App\Models\TransportRequest;
+use App\Models\TransportRoute;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -101,6 +101,9 @@ class TransportRouteController extends Controller
                     'id' => $vehicle->id,
                     'plate' => $vehicle->plate,
                     'vehicle_type' => $vehicle->vehicle_type,
+                    'brand' => $vehicle->brand,
+                    'model' => $vehicle->model,
+                    'model_year' => $vehicle->model_year,
                     'capacity_kg' => (float) $vehicle->capacity_kg,
                     'status' => $vehicle->status,
                 ])->values()

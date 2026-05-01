@@ -5,6 +5,8 @@ namespace Tests\Feature\Auth;
 use App\Models\Role;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -20,7 +22,9 @@ class RegistrationTest extends TestCase
 
     public function test_new_transporters_can_register(): void
     {
-        $response = $this->post('/register', [
+        Storage::fake('public');
+
+        $response = $this->post('/register', array_merge($this->validVehiclePayload(), [
             'name' => 'Test User',
             'email' => 'test@example.com',
             'phone' => '3001234567',
@@ -30,7 +34,7 @@ class RegistrationTest extends TestCase
             'capacity_kg' => 1800,
             'password' => 'password',
             'password_confirmation' => 'password',
-        ]);
+        ]));
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('transporter.dashboard', absolute: false));
@@ -43,8 +47,11 @@ class RegistrationTest extends TestCase
             'transporter_id' => auth()->user()->transporterProfile->id,
             'plate' => 'ABC123',
             'vehicle_type' => 'Camion',
+            'brand' => 'Chevrolet',
+            'model' => 'NPR',
+            'model_year' => 2020,
             'capacity_kg' => 1800,
-            'status' => Vehicle::STATUS_AVAILABLE,
+            'status' => Vehicle::STATUS_PENDING,
         ]);
     }
 
@@ -102,8 +109,40 @@ class RegistrationTest extends TestCase
         ]);
 
         $response->assertRedirect('/register');
-        $response->assertSessionHasErrors(['plate', 'vehicle_type', 'capacity_kg']);
+        $response->assertSessionHasErrors([
+            'plate',
+            'vehicle_type',
+            'brand',
+            'model',
+            'model_year',
+            'capacity_kg',
+            'vehicle_photo',
+            'transit_license_image',
+            'insurance_expires_at',
+            'insurance_image',
+            'technical_review_expires_at',
+            'technical_review_image',
+        ]);
 
         $this->assertGuest();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validVehiclePayload(): array
+    {
+        return [
+            'brand' => 'Chevrolet',
+            'model' => 'NPR',
+            'model_year' => 2020,
+            'color' => 'Blanco',
+            'vehicle_photo' => UploadedFile::fake()->create('vehiculo.jpg', 100, 'image/jpeg'),
+            'transit_license_image' => UploadedFile::fake()->create('licencia.jpg', 100, 'image/jpeg'),
+            'insurance_expires_at' => now()->addYear()->format('Y-m-d'),
+            'insurance_image' => UploadedFile::fake()->create('seguro.jpg', 100, 'image/jpeg'),
+            'technical_review_expires_at' => now()->addYear()->format('Y-m-d'),
+            'technical_review_image' => UploadedFile::fake()->create('tecnico.jpg', 100, 'image/jpeg'),
+        ];
     }
 }

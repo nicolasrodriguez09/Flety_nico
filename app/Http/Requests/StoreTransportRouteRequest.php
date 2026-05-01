@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Transporter;
 use App\Models\Vehicle;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -16,7 +17,7 @@ class StoreTransportRouteRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, \Illuminate\Contracts\Validation\ValidationRule|string>>
+     * @return array<string, array<int, ValidationRule|string>>
      */
     public function rules(): array
     {
@@ -61,5 +62,14 @@ class StoreTransportRouteRequest extends FormRequest
                 $validator->errors()->add('available_capacity_kg', 'La capacidad disponible no puede superar la capacidad del vehiculo.');
             }
         });
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'origin' => trim((string) $this->input('origin')),
+            'destination' => trim((string) $this->input('destination')),
+            'permitted_cargo_type' => trim((string) $this->input('permitted_cargo_type')),
+        ]);
     }
 }

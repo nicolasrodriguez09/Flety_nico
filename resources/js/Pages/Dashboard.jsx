@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 
 function SearchIcon() {
     return (
@@ -126,6 +126,11 @@ function TrendLine() {
 }
 
 function DataList({ section }) {
+    const actionStyles = {
+        approve: 'bg-emerald-700 text-white hover:bg-emerald-600',
+        reject: 'border border-rose-200 text-rose-700 hover:bg-rose-50',
+    };
+
     return (
         <article className="rounded-[1.8rem] border border-[#e6eadf] bg-[linear-gradient(180deg,#ffffff_0%,#f7f9f3_100%)] p-6 shadow-[0_24px_62px_-50px_rgba(42,73,57,0.4)]">
             <h3 className="text-lg font-semibold tracking-[-0.03em] text-[#203029]">
@@ -145,6 +150,39 @@ function DataList({ section }) {
                             <p className="mt-1 text-sm text-[#626a65]">
                                 {item.meta}
                             </p>
+                            {item.links?.length ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {item.links.map((link) => (
+                                        <a
+                                            key={link.label}
+                                            href={link.href}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="rounded-xl border border-[#dce6d8] px-3 py-2 text-xs font-semibold text-[#3f6f4b] transition hover:bg-[#f4f8ef]"
+                                        >
+                                            {link.label}
+                                        </a>
+                                    ))}
+                                </div>
+                            ) : null}
+                            {item.actions?.length ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {item.actions.map((action) => (
+                                        <button
+                                            key={action.label}
+                                            type="button"
+                                            onClick={() =>
+                                                router.post(action.href, {}, {
+                                                    preserveScroll: true,
+                                                })
+                                            }
+                                            className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${actionStyles[action.type] ?? actionStyles.approve}`}
+                                        >
+                                            {action.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
                     ))
                 ) : (
@@ -158,7 +196,7 @@ function DataList({ section }) {
 }
 
 export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) {
-    const { auth } = usePage().props;
+    const { auth, flash } = usePage().props;
     const user = auth.user;
     const role = dashboardRole ?? user.role?.slug;
     const data = dashboardData ?? {
@@ -198,6 +236,17 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
 
             <div className="py-8 sm:py-10">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    {flash.success ? (
+                        <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
+                            {flash.success}
+                        </section>
+                    ) : null}
+                    {flash.error ? (
+                        <section className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
+                            {flash.error}
+                        </section>
+                    ) : null}
+
                     <section className="overflow-hidden rounded-[2.3rem] border border-[#e7eadf] bg-[linear-gradient(180deg,#fbfbf7_0%,#f3f6ec_100%)] shadow-[0_36px_90px_-52px_rgba(42,73,57,0.42)]">
                         <div className="border-b border-[#ecefe7] bg-white px-6 py-4 lg:px-8">
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

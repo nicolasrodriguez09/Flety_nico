@@ -5,9 +5,9 @@ namespace Tests\Feature;
 use App\Models\Producer;
 use App\Models\Role;
 use App\Models\Service;
+use App\Models\Transporter;
 use App\Models\TransportRequest;
 use App\Models\TransportRoute;
-use App\Models\Transporter;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -103,8 +103,28 @@ class DashboardDataTest extends TestCase
             'transporter_id' => $approvedTransporter->transporterProfile->id,
             'plate' => 'CCC333',
             'vehicle_type' => 'Camioneta',
+            'brand' => 'Chevrolet',
+            'model' => 'NPR',
+            'model_year' => 2020,
             'capacity_kg' => 1600,
             'status' => Vehicle::STATUS_AVAILABLE,
+        ]);
+
+        Vehicle::query()->create([
+            'transporter_id' => $approvedTransporter->transporterProfile->id,
+            'plate' => 'PEN123',
+            'vehicle_type' => 'Camion',
+            'brand' => 'Hino',
+            'model' => 'Dutro',
+            'model_year' => 2021,
+            'capacity_kg' => 2800,
+            'vehicle_photo_path' => 'vehicle-documents/vehiculo.jpg',
+            'transit_license_image_path' => 'vehicle-documents/licencia.jpg',
+            'insurance_expires_at' => now()->addYear(),
+            'insurance_image_path' => 'vehicle-documents/seguro.jpg',
+            'technical_review_expires_at' => now()->addYear(),
+            'technical_review_image_path' => 'vehicle-documents/tecnico.jpg',
+            'status' => Vehicle::STATUS_PENDING,
         ]);
 
         $route = TransportRoute::query()->create([
@@ -140,6 +160,8 @@ class DashboardDataTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Transportista Pendiente');
+        $response->assertSee('PEN123');
+        $response->assertSee('Hino');
         $response->assertSee('Sogamoso');
         $response->assertSee('Bogota');
         $response->assertSee('Transportistas');

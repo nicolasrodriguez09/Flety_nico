@@ -14,8 +14,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -47,6 +47,8 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $maxVehicleYear = now()->addYear()->year;
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
@@ -69,12 +71,68 @@ class RegisteredUserController extends Controller
                 'string',
                 'max:50',
             ],
+            'brand' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'string',
+                'max:80',
+            ],
+            'model' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'string',
+                'max:80',
+            ],
+            'model_year' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'integer',
+                'min:1950',
+                'max:'.$maxVehicleYear,
+            ],
+            'color' => ['nullable', 'string', 'max:50'],
             'capacity_kg' => [
                 Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
                 'nullable',
                 'numeric',
                 'gt:0',
                 'max:99999999.99',
+            ],
+            'vehicle_photo' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'image',
+                'max:4096',
+            ],
+            'transit_license_image' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'image',
+                'max:4096',
+            ],
+            'insurance_expires_at' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'date',
+                'after_or_equal:today',
+            ],
+            'insurance_image' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'image',
+                'max:4096',
+            ],
+            'technical_review_expires_at' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'date',
+                'after_or_equal:today',
+            ],
+            'technical_review_image' => [
+                Rule::requiredIf(fn () => $request->string('role')->toString() === Role::TRANSPORTER),
+                'nullable',
+                'image',
+                'max:4096',
             ],
             'farm_name' => [
                 Rule::requiredIf(fn () => $request->string('role')->toString() === Role::PRODUCER),
@@ -115,8 +173,20 @@ class RegisteredUserController extends Controller
                     'transporter_id' => $transporter->id,
                     'plate' => strtoupper(trim($request->string('plate')->toString())),
                     'vehicle_type' => $request->string('vehicle_type')->trim()->toString(),
+                    'brand' => $request->string('brand')->trim()->toString(),
+                    'model' => $request->string('model')->trim()->toString(),
+                    'model_year' => $request->integer('model_year'),
+                    'color' => $request->filled('color')
+                        ? $request->string('color')->trim()->toString()
+                        : null,
                     'capacity_kg' => $request->input('capacity_kg'),
-                    'status' => Vehicle::STATUS_AVAILABLE,
+                    'vehicle_photo_path' => $request->file('vehicle_photo')->store('vehicle-documents', 'public'),
+                    'transit_license_image_path' => $request->file('transit_license_image')->store('vehicle-documents', 'public'),
+                    'insurance_expires_at' => $request->date('insurance_expires_at'),
+                    'insurance_image_path' => $request->file('insurance_image')->store('vehicle-documents', 'public'),
+                    'technical_review_expires_at' => $request->date('technical_review_expires_at'),
+                    'technical_review_image_path' => $request->file('technical_review_image')->store('vehicle-documents', 'public'),
+                    'status' => Vehicle::STATUS_PENDING,
                 ]);
             }
 
