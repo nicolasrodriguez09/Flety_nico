@@ -5,15 +5,46 @@ import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
+function FileInput({ id, label, error, onChange, required = false }) {
+    return (
+        <div>
+            <InputLabel htmlFor={id} value={label} />
+            <input
+                id={id}
+                type="file"
+                accept="image/*"
+                required={required}
+                onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+                className="mt-2 block w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white focus:border-emerald-500 focus:ring-emerald-500"
+            />
+            <InputError message={error} className="mt-2" />
+        </div>
+    );
+}
+
 export default function Register({ roles, selectedRole }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
         phone: '',
         role: selectedRole ?? '',
+        identity_document: '',
+        driver_license: '',
+        identity_document_image: null,
+        driver_license_image: null,
         plate: '',
         vehicle_type: '',
+        brand: '',
+        model: '',
+        model_year: '',
+        color: '',
         capacity_kg: '',
+        vehicle_photo: null,
+        transit_license_image: null,
+        insurance_expires_at: '',
+        insurance_image: null,
+        technical_review_expires_at: '',
+        technical_review_image: null,
         farm_name: '',
         farm_location: '',
         production_type: '',
@@ -28,6 +59,7 @@ export default function Register({ roles, selectedRole }) {
         e.preventDefault();
 
         post(route('register'), {
+            forceFormData: true,
             onFinish: () =>
                 reset(
                     'password',
@@ -144,15 +176,94 @@ export default function Register({ roles, selectedRole }) {
                                 Perfil de transportista
                             </p>
                             <h3 className="text-lg font-semibold text-slate-900">
-                                Datos del vehiculo
+                                Datos y documentos de validacion
                             </h3>
                             <p className="text-sm leading-6 text-slate-600">
-                                Registra el primer vehiculo con el que vas a
-                                publicar rutas y ofrecer capacidad de carga.
+                                Administracion revisa tu documento, licencia y
+                                soportes del primer vehiculo antes de habilitar
+                                la publicacion de rutas.
                             </p>
                         </div>
 
                         <div className="mt-5 space-y-4">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <InputLabel
+                                        htmlFor="identity_document"
+                                        value="Documento de identidad"
+                                    />
+
+                                    <TextInput
+                                        id="identity_document"
+                                        name="identity_document"
+                                        value={data.identity_document}
+                                        className="mt-2 block w-full"
+                                        autoComplete="off"
+                                        placeholder="Numero de cedula"
+                                        onChange={(e) =>
+                                            setData(
+                                                'identity_document',
+                                                e.target.value,
+                                            )
+                                        }
+                                        required={isTransporter}
+                                    />
+
+                                    <InputError
+                                        message={errors.identity_document}
+                                        className="mt-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <InputLabel
+                                        htmlFor="driver_license"
+                                        value="Licencia de conduccion"
+                                    />
+
+                                    <TextInput
+                                        id="driver_license"
+                                        name="driver_license"
+                                        value={data.driver_license}
+                                        className="mt-2 block w-full"
+                                        autoComplete="off"
+                                        placeholder="Numero de licencia"
+                                        onChange={(e) =>
+                                            setData(
+                                                'driver_license',
+                                                e.target.value,
+                                            )
+                                        }
+                                        required={isTransporter}
+                                    />
+
+                                    <InputError
+                                        message={errors.driver_license}
+                                        className="mt-2"
+                                    />
+                                </div>
+                            </div>
+
+                            <FileInput
+                                id="identity_document_image"
+                                label="Imagen del documento de identidad"
+                                required={isTransporter}
+                                error={errors.identity_document_image}
+                                onChange={(file) =>
+                                    setData('identity_document_image', file)
+                                }
+                            />
+
+                            <FileInput
+                                id="driver_license_image"
+                                label="Imagen de la licencia de conduccion"
+                                required={isTransporter}
+                                error={errors.driver_license_image}
+                                onChange={(file) =>
+                                    setData('driver_license_image', file)
+                                }
+                            />
+
                             <div>
                                 <InputLabel htmlFor="plate" value="Placa" />
 
@@ -233,6 +344,202 @@ export default function Register({ roles, selectedRole }) {
                                     className="mt-2"
                                 />
                             </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <InputLabel htmlFor="brand" value="Marca" />
+
+                                    <TextInput
+                                        id="brand"
+                                        name="brand"
+                                        value={data.brand}
+                                        className="mt-2 block w-full"
+                                        autoComplete="off"
+                                        placeholder="Chevrolet, Hino, JAC"
+                                        onChange={(e) =>
+                                            setData('brand', e.target.value)
+                                        }
+                                        required={isTransporter}
+                                    />
+
+                                    <InputError
+                                        message={errors.brand}
+                                        className="mt-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <InputLabel
+                                        htmlFor="model"
+                                        value="Linea o modelo"
+                                    />
+
+                                    <TextInput
+                                        id="model"
+                                        name="model"
+                                        value={data.model}
+                                        className="mt-2 block w-full"
+                                        autoComplete="off"
+                                        placeholder="NPR, Dutro, NKR"
+                                        onChange={(e) =>
+                                            setData('model', e.target.value)
+                                        }
+                                        required={isTransporter}
+                                    />
+
+                                    <InputError
+                                        message={errors.model}
+                                        className="mt-2"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <InputLabel
+                                        htmlFor="model_year"
+                                        value="Anio del vehiculo"
+                                    />
+
+                                    <TextInput
+                                        id="model_year"
+                                        name="model_year"
+                                        type="number"
+                                        min="1950"
+                                        value={data.model_year}
+                                        className="mt-2 block w-full"
+                                        inputMode="numeric"
+                                        placeholder="2020"
+                                        onChange={(e) =>
+                                            setData(
+                                                'model_year',
+                                                e.target.value,
+                                            )
+                                        }
+                                        required={isTransporter}
+                                    />
+
+                                    <InputError
+                                        message={errors.model_year}
+                                        className="mt-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="color" value="Color" />
+
+                                    <TextInput
+                                        id="color"
+                                        name="color"
+                                        value={data.color}
+                                        className="mt-2 block w-full"
+                                        autoComplete="off"
+                                        placeholder="Blanco"
+                                        onChange={(e) =>
+                                            setData('color', e.target.value)
+                                        }
+                                    />
+
+                                    <InputError
+                                        message={errors.color}
+                                        className="mt-2"
+                                    />
+                                </div>
+                            </div>
+
+                            <FileInput
+                                id="vehicle_photo"
+                                label="Foto del vehiculo"
+                                required={isTransporter}
+                                error={errors.vehicle_photo}
+                                onChange={(file) =>
+                                    setData('vehicle_photo', file)
+                                }
+                            />
+
+                            <FileInput
+                                id="transit_license_image"
+                                label="Imagen de la licencia de transito"
+                                required={isTransporter}
+                                error={errors.transit_license_image}
+                                onChange={(file) =>
+                                    setData('transit_license_image', file)
+                                }
+                            />
+
+                            <div>
+                                <InputLabel
+                                    htmlFor="insurance_expires_at"
+                                    value="Seguro vigente hasta"
+                                />
+
+                                <TextInput
+                                    id="insurance_expires_at"
+                                    name="insurance_expires_at"
+                                    type="date"
+                                    value={data.insurance_expires_at}
+                                    className="mt-2 block w-full"
+                                    onChange={(e) =>
+                                        setData(
+                                            'insurance_expires_at',
+                                            e.target.value,
+                                        )
+                                    }
+                                    required={isTransporter}
+                                />
+
+                                <InputError
+                                    message={errors.insurance_expires_at}
+                                    className="mt-2"
+                                />
+                            </div>
+
+                            <FileInput
+                                id="insurance_image"
+                                label="Soporte del seguro"
+                                required={isTransporter}
+                                error={errors.insurance_image}
+                                onChange={(file) =>
+                                    setData('insurance_image', file)
+                                }
+                            />
+
+                            <div>
+                                <InputLabel
+                                    htmlFor="technical_review_expires_at"
+                                    value="Tecnico-mecanica vigente hasta"
+                                />
+
+                                <TextInput
+                                    id="technical_review_expires_at"
+                                    name="technical_review_expires_at"
+                                    type="date"
+                                    value={data.technical_review_expires_at}
+                                    className="mt-2 block w-full"
+                                    onChange={(e) =>
+                                        setData(
+                                            'technical_review_expires_at',
+                                            e.target.value,
+                                        )
+                                    }
+                                    required={isTransporter}
+                                />
+
+                                <InputError
+                                    message={errors.technical_review_expires_at}
+                                    className="mt-2"
+                                />
+                            </div>
+
+                            <FileInput
+                                id="technical_review_image"
+                                label="Soporte de tecnico-mecanica"
+                                required={isTransporter}
+                                error={errors.technical_review_image}
+                                onChange={(file) =>
+                                    setData('technical_review_image', file)
+                                }
+                            />
                         </div>
                     </section>
                 ) : null}

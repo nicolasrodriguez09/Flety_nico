@@ -40,6 +40,15 @@ class RoleAccessTest extends TestCase
             ->assertRedirect(route('admin.dashboard'));
     }
 
+    public function test_admin_can_open_transporter_validation_module(): void
+    {
+        $user = $this->createAdminUser();
+
+        $this->actingAs($user)
+            ->get(route('admin.transporters.index'))
+            ->assertOk();
+    }
+
     public function test_generic_routes_url_redirects_transporters_and_producers_to_their_role_area(): void
     {
         $transporter = $this->createTransporterUser();
@@ -54,6 +63,15 @@ class RoleAccessTest extends TestCase
         $this->actingAs($producer)
             ->get(route('routes.index'))
             ->assertRedirect(route('producer.routes.index'));
+    }
+
+    public function test_transporter_can_open_vehicle_registration_area(): void
+    {
+        $user = $this->createTransporterUser();
+
+        $this->actingAs($user)
+            ->get(route('transporter.vehicles.create'))
+            ->assertOk();
     }
 
     public function test_transporter_cannot_access_producer_routes(): void
@@ -71,6 +89,14 @@ class RoleAccessTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('transporter.routes.index'))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('transporter.vehicles.create'))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('admin.transporters.index'))
             ->assertForbidden();
     }
 

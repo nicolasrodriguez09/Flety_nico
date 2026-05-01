@@ -5,13 +5,15 @@ namespace Tests\Feature;
 use App\Models\Producer;
 use App\Models\Role;
 use App\Models\Service;
+use App\Models\Transporter;
 use App\Models\TransportRequest;
 use App\Models\TransportRoute;
-use App\Models\Transporter;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class TransportRouteManagementTest extends TestCase
@@ -20,17 +22,29 @@ class TransportRouteManagementTest extends TestCase
 
     public function test_validated_transporter_can_register_a_vehicle_and_publish_a_route(): void
     {
+        Storage::fake('public');
         $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
 
         $this->actingAs($user)
-            ->post(route('transporter.vehicles.store'), [
+            ->post(route('transporter.vehicles.store'), $this->validVehiclePayload([
                 'plate' => 'abc123',
                 'vehicle_type' => 'Camion',
                 'capacity_kg' => 2500,
-            ])
+            ]))
             ->assertRedirect();
 
         $vehicle = Vehicle::query()->firstOrFail();
+
+        $this->assertDatabaseHas('vehicles', [
+            'id' => $vehicle->id,
+            'plate' => 'ABC123',
+            'transporter_id' => $user->transporterProfile->id,
+            'status' => Vehicle::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($this->createAdminUser())
+            ->post(route('admin.vehicles.approve', $vehicle))
+            ->assertRedirect();
 
         $this->actingAs($user)
             ->post(route('transporter.routes.store'), [
@@ -47,6 +61,7 @@ class TransportRouteManagementTest extends TestCase
             'id' => $vehicle->id,
             'plate' => 'ABC123',
             'transporter_id' => $user->transporterProfile->id,
+            'status' => Vehicle::STATUS_AVAILABLE,
         ]);
 
         $this->assertDatabaseHas('transport_routes', [
@@ -54,6 +69,102 @@ class TransportRouteManagementTest extends TestCase
             'vehicle_id' => $vehicle->id,
             'origin' => 'Tunja',
             'destination' => 'Bogota',
+            'status' => TransportRoute::STATUS_PUBLISHED,
+        ]);
+    }
+
+    public function test_registered_vehicle_stays_pending_and_cannot_publish_routes_until_admin_approval(): void
+    {
+        Storage::fake('public');
+        $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
+
+        $this->actingAs($user)
+            ->post(route('transporter.vehicles.store'), $this->validVehiclePayload([
+                'plate' => 'pnd123',
+                'capacity_kg' => 1800,
+            ]))
+            ->assertRedirect();
+
+        $vehicle = Vehicle::query()->firstOrFail();
+
+        $this->assertSame(Vehicle::STATUS_PENDING, $vehicle->status);
+
+        $this->actingAs($user)
+            ->from(route('transporter.routes.index'))
+            ->post(route('transporter.routes.store'), [
+                'vehicle_id' => $vehicle->id,
+                'origin' => 'Neiva',
+                'destination' => 'Ibague',
+                'departure_at' => now()->addDays(2)->format('Y-m-d H:i:s'),
+                'available_capacity_kg' => 1000,
+                'permitted_cargo_type' => 'Cafe',
+            ])
+            ->assertRedirect(route('transporter.routes.index'))
+            ->assertSessionHasErrors(['vehicle_id']);
+
+        $this->assertDatabaseCount('transport_routes', 0);
+    }
+
+    public function test_route_publication_requires_origin_destination_departure_date_and_available_capacity(): void
+    {
+        $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
+        $vehicle = Vehicle::query()->create([
+            'transporter_id' => $user->transporterProfile->id,
+            'plate' => 'REQ123',
+            'vehicle_type' => 'Camion',
+            'capacity_kg' => 2500,
+            'status' => Vehicle::STATUS_AVAILABLE,
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('transporter.routes.index'))
+            ->post(route('transporter.routes.store'), [
+                'vehicle_id' => $vehicle->id,
+                'origin' => '',
+                'destination' => '',
+                'departure_at' => '',
+                'available_capacity_kg' => '',
+                'permitted_cargo_type' => 'Papa',
+            ])
+            ->assertRedirect(route('transporter.routes.index'))
+            ->assertSessionHasErrors([
+                'origin',
+                'destination',
+                'departure_at',
+                'available_capacity_kg',
+            ]);
+
+        $this->assertDatabaseCount('transport_routes', 0);
+    }
+
+    public function test_route_publication_trims_location_and_cargo_type_values_before_saving(): void
+    {
+        $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
+        $vehicle = Vehicle::query()->create([
+            'transporter_id' => $user->transporterProfile->id,
+            'plate' => 'TRM123',
+            'vehicle_type' => 'Camion',
+            'capacity_kg' => 2500,
+            'status' => Vehicle::STATUS_AVAILABLE,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('transporter.routes.store'), [
+                'vehicle_id' => $vehicle->id,
+                'origin' => '  Neiva  ',
+                'destination' => '  Ibague  ',
+                'departure_at' => now()->addDays(2)->format('Y-m-d H:i:s'),
+                'available_capacity_kg' => 1800,
+                'permitted_cargo_type' => '  Cafe  ',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('transport_routes', [
+            'transporter_id' => $user->transporterProfile->id,
+            'vehicle_id' => $vehicle->id,
+            'origin' => 'Neiva',
+            'destination' => 'Ibague',
+            'permitted_cargo_type' => 'Cafe',
             'status' => TransportRoute::STATUS_PUBLISHED,
         ]);
     }
@@ -338,6 +449,17 @@ class TransportRouteManagementTest extends TestCase
         return $user->fresh('producerProfile');
     }
 
+    private function createAdminUser(string $email = 'admin-routes@example.com'): User
+    {
+        $roleId = Role::query()->where('slug', Role::ADMIN)->value('id');
+
+        return User::factory()->create([
+            'role_id' => $roleId,
+            'email' => $email,
+            'phone' => fake()->unique()->numerify('3#########'),
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -362,5 +484,28 @@ class TransportRouteManagementTest extends TestCase
             'permitted_cargo_type' => 'Papa',
             'status' => TransportRoute::STATUS_PUBLISHED,
         ], $attributes));
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function validVehiclePayload(array $overrides = []): array
+    {
+        return array_merge([
+            'plate' => strtoupper(fake()->unique()->bothify('???###')),
+            'vehicle_type' => 'Camion',
+            'brand' => 'Chevrolet',
+            'model' => 'NPR',
+            'model_year' => 2020,
+            'color' => 'Blanco',
+            'capacity_kg' => 2500,
+            'vehicle_photo' => UploadedFile::fake()->create('vehiculo.jpg', 100, 'image/jpeg'),
+            'transit_license_image' => UploadedFile::fake()->create('licencia.jpg', 100, 'image/jpeg'),
+            'insurance_expires_at' => now()->addYear()->format('Y-m-d'),
+            'insurance_image' => UploadedFile::fake()->create('seguro.jpg', 100, 'image/jpeg'),
+            'technical_review_expires_at' => now()->addYear()->format('Y-m-d'),
+            'technical_review_image' => UploadedFile::fake()->create('tecnico.jpg', 100, 'image/jpeg'),
+        ], $overrides);
     }
 }

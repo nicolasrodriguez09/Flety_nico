@@ -4,6 +4,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 const statusLabels = {
     accepted: 'Aceptada',
     approved: 'Aprobado',
+    available: 'Aprobado',
     cancelled: 'Cancelada',
     closed: 'Cerrada',
     confirmed: 'Confirmado',
@@ -43,6 +44,7 @@ function StatusBadge({ status }) {
     const styles = {
         accepted: 'bg-emerald-100 text-emerald-700',
         approved: 'bg-emerald-100 text-emerald-700',
+        available: 'bg-emerald-100 text-emerald-700',
         confirmed: 'bg-emerald-100 text-emerald-700',
         pending: 'bg-amber-100 text-amber-700',
         published: 'bg-emerald-100 text-emerald-700',
@@ -201,21 +203,12 @@ function ServiceCard({ service }) {
     );
 }
 
-function TransporterView({
-    transporterProfile,
-    vehicles,
-    myRoutes,
-    incomingRequests,
-    confirmedServices,
-}) {
-    const vehicleForm = useForm({
-        plate: '',
-        vehicle_type: '',
-        capacity_kg: '',
-    });
-
+function PublishRouteForm({ vehicles, transporterProfile }) {
+    const approvedVehicles = vehicles.filter(
+        (vehicle) => vehicle.status === 'available',
+    );
     const routeForm = useForm({
-        vehicle_id: vehicles[0]?.id ?? '',
+        vehicle_id: approvedVehicles[0]?.id ?? '',
         origin: '',
         destination: '',
         departure_at: '',
@@ -223,8 +216,240 @@ function TransporterView({
         permitted_cargo_type: '',
     });
 
-    const requestDecisionForm = useForm({});
+    const selectedVehicle = vehicles.find(
+        (vehicle) => String(vehicle.id) === String(routeForm.data.vehicle_id),
+    );
     const canCreateRoutes = transporterProfile?.validation_status === 'approved';
+    const canSubmitRoute =
+        canCreateRoutes &&
+        approvedVehicles.length > 0 &&
+        routeForm.data.vehicle_id &&
+        routeForm.data.origin.trim() &&
+        routeForm.data.destination.trim() &&
+        routeForm.data.departure_at &&
+        Number(routeForm.data.available_capacity_kg) > 0 &&
+        (!selectedVehicle ||
+            Number(routeForm.data.available_capacity_kg) <=
+                Number(selectedVehicle.capacity_kg)) &&
+        routeForm.data.permitted_cargo_type.trim();
+
+    return (
+        <article className={cardClassName()}>
+            <SectionTitle
+                eyebrow="Rutas"
+                title="Publicar ruta de retorno"
+                description="Registra origen, destino, fecha y capacidad disponible para ofrecer espacio de carga a productores."
+            />
+
+            {!canCreateRoutes ? (
+                <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Tu perfil aun no esta aprobado. Puedes registrar vehiculos,
+                    pero no publicar rutas.
+                </div>
+            ) : null}
+
+            {!approvedVehicles.length ? (
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    Necesitas al menos un vehiculo aprobado por administracion
+                    para publicar rutas.
+                </div>
+            ) : null}
+
+            <form
+                className="mt-6 space-y-4"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    routeForm.post(route('transporter.routes.store'), {
+                        preserveScroll: true,
+                        onSuccess: () =>
+                            routeForm.reset(
+                                'origin',
+                                'destination',
+                                'departure_at',
+                                'available_capacity_kg',
+                                'permitted_cargo_type',
+                            ),
+                    });
+                }}
+            >
+                <div>
+                    <label
+                        htmlFor="vehicle_id"
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Vehiculo
+                    </label>
+                    <select
+                        id="vehicle_id"
+                        required
+                        value={routeForm.data.vehicle_id}
+                        onChange={(event) =>
+                            routeForm.setData('vehicle_id', event.target.value)
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    >
+                        <option value="">Selecciona un vehiculo</option>
+                        {approvedVehicles.map((vehicle) => (
+                            <option key={vehicle.id} value={vehicle.id}>
+                                {vehicle.plate} - {vehicle.vehicle_type} -{' '}
+                                {vehicle.capacity_kg} kg
+                            </option>
+                        ))}
+                    </select>
+                    {selectedVehicle ? (
+                        <p className="mt-2 text-xs text-slate-500">
+                            Capacidad maxima del vehiculo:{' '}
+                            {selectedVehicle.capacity_kg} kg
+                        </p>
+                    ) : null}
+                    <FieldError message={routeForm.errors.vehicle_id} />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <label
+                            htmlFor="origin"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Origen
+                        </label>
+                        <input
+                            id="origin"
+                            required
+                            autoComplete="address-level2"
+                            value={routeForm.data.origin}
+                            onChange={(event) =>
+                                routeForm.setData('origin', event.target.value)
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. Neiva"
+                        />
+                        <FieldError message={routeForm.errors.origin} />
+                    </div>
+
+                    <div>
+                        <label
+                            htmlFor="destination"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Destino
+                        </label>
+                        <input
+                            id="destination"
+                            required
+                            autoComplete="address-level2"
+                            value={routeForm.data.destination}
+                            onChange={(event) =>
+                                routeForm.setData(
+                                    'destination',
+                                    event.target.value,
+                                )
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. Ibague"
+                        />
+                        <FieldError message={routeForm.errors.destination} />
+                    </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <label
+                            htmlFor="departure_at"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Fecha y hora de salida
+                        </label>
+                        <input
+                            id="departure_at"
+                            type="datetime-local"
+                            required
+                            value={routeForm.data.departure_at}
+                            onChange={(event) =>
+                                routeForm.setData(
+                                    'departure_at',
+                                    event.target.value,
+                                )
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                        />
+                        <FieldError message={routeForm.errors.departure_at} />
+                    </div>
+
+                    <div>
+                        <label
+                            htmlFor="available_capacity_kg"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Capacidad disponible
+                        </label>
+                        <input
+                            id="available_capacity_kg"
+                            type="number"
+                            required
+                            inputMode="decimal"
+                            min="1"
+                            max={selectedVehicle?.capacity_kg}
+                            step="0.01"
+                            value={routeForm.data.available_capacity_kg}
+                            onChange={(event) =>
+                                routeForm.setData(
+                                    'available_capacity_kg',
+                                    event.target.value,
+                                )
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. 1500"
+                        />
+                        <FieldError
+                            message={routeForm.errors.available_capacity_kg}
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        htmlFor="permitted_cargo_type"
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Tipo de carga permitida
+                    </label>
+                    <input
+                        id="permitted_cargo_type"
+                        required
+                        value={routeForm.data.permitted_cargo_type}
+                        onChange={(event) =>
+                            routeForm.setData(
+                                'permitted_cargo_type',
+                                event.target.value,
+                            )
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                        placeholder="Ej. cafe, papa, insumos"
+                    />
+                    <FieldError message={routeForm.errors.permitted_cargo_type} />
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={routeForm.processing || !canSubmitRoute}
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                >
+                    {routeForm.processing ? 'Publicando...' : 'Publicar ruta'}
+                </button>
+            </form>
+        </article>
+    );
+}
+
+function TransporterView({
+    transporterProfile,
+    vehicles,
+    myRoutes,
+    incomingRequests,
+    confirmedServices,
+}) {
+    const requestDecisionForm = useForm({});
 
     return (
         <>
@@ -241,316 +466,24 @@ function TransporterView({
                         </div>
                     </div>
                     <p className="max-w-xl text-sm leading-6 text-slate-600">
-                        TH3 mantiene las reglas de integridad. TH4 agrega la
-                        aceptacion de solicitudes y la habilitacion del contacto
-                        solo cuando el servicio queda confirmado.
+                        La plataforma protege tus rutas, solicitudes y contactos
+                        para que cada servicio avance solo cuando ambas partes
+                        esten confirmadas.
                     </p>
                 </div>
             </section>
 
-            <section className="grid gap-6 lg:grid-cols-2">
-                <article className={cardClassName()}>
-                    <SectionTitle
-                        eyebrow="Paso 1"
-                        title="Registrar vehiculo"
-                        description="Cada ruta publicada queda asociada a un vehiculo del mismo transportista."
-                    />
-
-                    <form
-                        className="mt-6 space-y-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            vehicleForm.post(route('transporter.vehicles.store'), {
-                                preserveScroll: true,
-                                onSuccess: () => vehicleForm.reset(),
-                            });
-                        }}
-                    >
-                        <div>
-                            <label
-                                htmlFor="plate"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Placa
-                            </label>
-                            <input
-                                id="plate"
-                                value={vehicleForm.data.plate}
-                                onChange={(event) =>
-                                    vehicleForm.setData(
-                                        'plate',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                placeholder="ABC123"
-                            />
-                            <FieldError message={vehicleForm.errors.plate} />
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="vehicle_type"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Tipo de vehiculo
-                            </label>
-                            <input
-                                id="vehicle_type"
-                                value={vehicleForm.data.vehicle_type}
-                                onChange={(event) =>
-                                    vehicleForm.setData(
-                                        'vehicle_type',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                placeholder="Camion, camioneta, furgon"
-                            />
-                            <FieldError
-                                message={vehicleForm.errors.vehicle_type}
-                            />
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="capacity_kg"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Capacidad en kg
-                            </label>
-                            <input
-                                id="capacity_kg"
-                                type="number"
-                                min="1"
-                                step="0.01"
-                                value={vehicleForm.data.capacity_kg}
-                                onChange={(event) =>
-                                    vehicleForm.setData(
-                                        'capacity_kg',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                placeholder="1500"
-                            />
-                            <FieldError
-                                message={vehicleForm.errors.capacity_kg}
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={vehicleForm.processing}
-                            className="inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
-                        >
-                            Guardar vehiculo
-                        </button>
-                    </form>
-                </article>
-
-                <article className={cardClassName()}>
-                    <SectionTitle
-                        eyebrow="Paso 2"
-                        title="Publicar ruta"
-                        description="La capacidad de la ruta nunca puede exceder la del vehiculo y el perfil debe estar aprobado."
-                    />
-
-                    {!canCreateRoutes ? (
-                        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                            Tu perfil aun no esta aprobado. Puedes registrar
-                            vehiculos, pero no publicar rutas.
-                        </div>
-                    ) : null}
-
-                    <form
-                        className="mt-6 space-y-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            routeForm.post(route('transporter.routes.store'), {
-                                preserveScroll: true,
-                                onSuccess: () =>
-                                    routeForm.reset(
-                                        'origin',
-                                        'destination',
-                                        'departure_at',
-                                        'available_capacity_kg',
-                                        'permitted_cargo_type',
-                                    ),
-                            });
-                        }}
-                    >
-                        <div>
-                            <label
-                                htmlFor="vehicle_id"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Vehiculo
-                            </label>
-                            <select
-                                id="vehicle_id"
-                                value={routeForm.data.vehicle_id}
-                                onChange={(event) =>
-                                    routeForm.setData(
-                                        'vehicle_id',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                            >
-                                <option value="">Selecciona un vehiculo</option>
-                                {vehicles.map((vehicle) => (
-                                    <option key={vehicle.id} value={vehicle.id}>
-                                        {vehicle.plate} - {vehicle.vehicle_type}{' '}
-                                        - {vehicle.capacity_kg} kg
-                                    </option>
-                                ))}
-                            </select>
-                            <FieldError message={routeForm.errors.vehicle_id} />
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label
-                                    htmlFor="origin"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    Origen
-                                </label>
-                                <input
-                                    id="origin"
-                                    value={routeForm.data.origin}
-                                    onChange={(event) =>
-                                        routeForm.setData(
-                                            'origin',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                />
-                                <FieldError message={routeForm.errors.origin} />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="destination"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    Destino
-                                </label>
-                                <input
-                                    id="destination"
-                                    value={routeForm.data.destination}
-                                    onChange={(event) =>
-                                        routeForm.setData(
-                                            'destination',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                />
-                                <FieldError
-                                    message={routeForm.errors.destination}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label
-                                    htmlFor="departure_at"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    Fecha y hora de salida
-                                </label>
-                                <input
-                                    id="departure_at"
-                                    type="datetime-local"
-                                    value={routeForm.data.departure_at}
-                                    onChange={(event) =>
-                                        routeForm.setData(
-                                            'departure_at',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                />
-                                <FieldError
-                                    message={routeForm.errors.departure_at}
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="available_capacity_kg"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    Capacidad disponible
-                                </label>
-                                <input
-                                    id="available_capacity_kg"
-                                    type="number"
-                                    min="1"
-                                    step="0.01"
-                                    value={routeForm.data.available_capacity_kg}
-                                    onChange={(event) =>
-                                        routeForm.setData(
-                                            'available_capacity_kg',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                />
-                                <FieldError
-                                    message={
-                                        routeForm.errors.available_capacity_kg
-                                    }
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="permitted_cargo_type"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Tipo de carga permitida
-                            </label>
-                            <input
-                                id="permitted_cargo_type"
-                                value={routeForm.data.permitted_cargo_type}
-                                onChange={(event) =>
-                                    routeForm.setData(
-                                        'permitted_cargo_type',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                            />
-                            <FieldError
-                                message={routeForm.errors.permitted_cargo_type}
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={
-                                routeForm.processing ||
-                                !vehicles.length ||
-                                !canCreateRoutes
-                            }
-                            className="inline-flex rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
-                        >
-                            Publicar ruta
-                        </button>
-                    </form>
-                </article>
+            <section>
+                <PublishRouteForm
+                    vehicles={vehicles}
+                    transporterProfile={transporterProfile}
+                />
             </section>
 
             <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
                 <article className={cardClassName()}>
                     <SectionTitle
-                        eyebrow="TH4"
+                        eyebrow="Solicitudes"
                         title="Solicitudes recibidas"
                         description="Acepta o rechaza solicitudes de productores. Al aceptar, el servicio se confirma y el contacto queda habilitado para ambas partes."
                     />
@@ -767,7 +700,7 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
         <>
             <section className={cardClassName()}>
                 <SectionTitle
-                    eyebrow="TH4"
+                    eyebrow="Servicios"
                     title="Servicios confirmados y contacto"
                     description="Los datos del transportista solo aparecen cuando la solicitud es aceptada. Desde esta confirmacion puedes llamar o abrir WhatsApp en un clic."
                 />
@@ -1093,7 +1026,7 @@ export default function RoutesIndex({
         <AuthenticatedLayout
             header={
                 <SectionTitle
-                    eyebrow="TH3 + TH4"
+                    eyebrow="Operacion"
                     title="Rutas, solicitudes y contacto"
                     description="La plataforma ya registra rutas y solicitudes, permite aceptar o rechazar cargas y habilita el contacto directo solo entre las partes del servicio confirmado."
                 />
