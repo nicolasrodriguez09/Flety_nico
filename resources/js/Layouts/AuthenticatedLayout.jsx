@@ -19,6 +19,7 @@ export default function AuthenticatedLayout({ header, children }) {
             : user.role?.slug === 'productor'
               ? route('producer.routes.index')
               : null;
+    const canManageVehicles = user.role?.slug === 'transportista';
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -109,6 +110,16 @@ export default function AuthenticatedLayout({ header, children }) {
                                         >
                                             Perfil
                                         </Dropdown.Link>
+                                        {canManageVehicles ? (
+                                            <Dropdown.Link
+                                                href={route(
+                                                    'transporter.vehicles.create',
+                                                )}
+                                                className="px-4 py-3 font-medium text-[#32473d] hover:bg-[#f3f8ef] focus:bg-[#f3f8ef]"
+                                            >
+                                                Registrar vehiculo
+                                            </Dropdown.Link>
+                                        ) : null}
                                         <Dropdown.Link
                                             href={route('logout')}
                                             method="post"
@@ -212,6 +223,13 @@ export default function AuthenticatedLayout({ header, children }) {
                             <ResponsiveNavLink href={route('profile.edit')}>
                                 Perfil
                             </ResponsiveNavLink>
+                            {canManageVehicles ? (
+                                <ResponsiveNavLink
+                                    href={route('transporter.vehicles.create')}
+                                >
+                                    Registrar vehiculo
+                                </ResponsiveNavLink>
+                            ) : null}
                             <ResponsiveNavLink
                                 method="post"
                                 href={route('logout')}

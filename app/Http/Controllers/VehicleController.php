@@ -6,9 +6,39 @@ use App\Http\Requests\StoreVehicleRequest;
 use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class VehicleController extends Controller
 {
+    public function create(Request $request): Response
+    {
+        $user = $request->user()->loadMissing('transporterProfile.vehicles');
+        $transporter = $user->transporterProfile;
+
+        return Inertia::render('Vehicles/Create', [
+            'vehicles' => $transporter
+                ? $transporter->vehicles
+                    ->sortByDesc('created_at')
+                    ->map(fn (Vehicle $vehicle) => [
+                        'id' => $vehicle->id,
+                        'plate' => $vehicle->plate,
+                        'vehicle_type' => $vehicle->vehicle_type,
+                        'brand' => $vehicle->brand,
+                        'model' => $vehicle->model,
+                        'model_year' => $vehicle->model_year,
+                        'color' => $vehicle->color,
+                        'capacity_kg' => (float) $vehicle->capacity_kg,
+                        'insurance_expires_at' => $vehicle->insurance_expires_at?->toDateString(),
+                        'technical_review_expires_at' => $vehicle->technical_review_expires_at?->toDateString(),
+                        'status' => $vehicle->status,
+                        'review_notes' => $vehicle->review_notes,
+                    ])
+                    ->values()
+                : [],
+        ]);
+    }
+
     public function store(StoreVehicleRequest $request): RedirectResponse
     {
         $transporter = $request->user()->transporterProfile;

@@ -38,6 +38,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/transportista/rutas', [TransportRouteController::class, 'transporterIndex'])
         ->middleware(['verified', 'role:transportista'])
         ->name('transporter.routes.index');
+    Route::get('/transportista/vehiculos/registrar', [VehicleController::class, 'create'])
+        ->middleware(['verified', 'role:transportista'])
+        ->name('transporter.vehicles.create');
     Route::post('/transportista/rutas', [TransportRouteController::class, 'store'])
         ->middleware(['verified', 'role:transportista'])
         ->name('transporter.routes.store');
