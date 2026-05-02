@@ -6,6 +6,7 @@ use App\Http\Requests\StoreTransportRouteRequest;
 use App\Models\Service;
 use App\Models\TransportRequest;
 use App\Models\TransportRoute;
+use App\Services\OpenRouteService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,9 +34,16 @@ class TransportRouteController extends Controller
                 ->map(fn (TransportRoute $route) => [
                     'id' => $route->id,
                     'origin' => $route->origin,
+                    'origin_lat' => $route->origin_lat !== null ? (float) $route->origin_lat : null,
+                    'origin_lng' => $route->origin_lng !== null ? (float) $route->origin_lng : null,
                     'destination' => $route->destination,
+                    'destination_lat' => $route->destination_lat !== null ? (float) $route->destination_lat : null,
+                    'destination_lng' => $route->destination_lng !== null ? (float) $route->destination_lng : null,
                     'departure_at' => $route->departure_at?->toIso8601String(),
                     'available_capacity_kg' => (float) $route->available_capacity_kg,
+                    'distance_km' => $route->distance_km !== null ? (float) $route->distance_km : null,
+                    'estimated_duration_minutes' => $route->estimated_duration_minutes,
+                    'route_geometry' => $route->route_geometry,
                     'permitted_cargo_type' => $route->permitted_cargo_type,
                     'status' => $route->status,
                     'transport_requests_count' => $route->transport_requests_count,
@@ -138,9 +146,16 @@ class TransportRouteController extends Controller
             ->map(fn (TransportRoute $route) => [
                 'id' => $route->id,
                 'origin' => $route->origin,
+                'origin_lat' => $route->origin_lat !== null ? (float) $route->origin_lat : null,
+                'origin_lng' => $route->origin_lng !== null ? (float) $route->origin_lng : null,
                 'destination' => $route->destination,
+                'destination_lat' => $route->destination_lat !== null ? (float) $route->destination_lat : null,
+                'destination_lng' => $route->destination_lng !== null ? (float) $route->destination_lng : null,
                 'departure_at' => $route->departure_at?->toIso8601String(),
                 'available_capacity_kg' => (float) $route->available_capacity_kg,
+                'distance_km' => $route->distance_km !== null ? (float) $route->distance_km : null,
+                'estimated_duration_minutes' => $route->estimated_duration_minutes,
+                'route_geometry' => $route->route_geometry,
                 'permitted_cargo_type' => $route->permitted_cargo_type,
                 'status' => $route->status,
                 'vehicle' => $route->vehicle ? [
@@ -214,13 +229,53 @@ class TransportRouteController extends Controller
     {
         $transporter = $request->user()->transporterProfile;
 
+        $originLat = $request->input('origin_lat');
+        $originLng = $request->input('origin_lng');
+        $destinationLat = $request->input('destination_lat');
+        $destinationLng = $request->input('destination_lng');
+
+        $distanceKm = null;
+        $estimatedDurationMinutes = null;
+        $routeGeometry = null;
+
+        if ($originLat && $originLng && $destinationLat && $destinationLng) {
+            $routeData = app(OpenRouteService::class)->getDrivingRoute(
+                (float) $originLat,
+                (float) $originLng,
+                (float) $destinationLat,
+                (float) $destinationLng,
+            );
+
+            if ($routeData) {
+                $distanceKm = $routeData['distance_km'];
+                $estimatedDurationMinutes = $routeData['duration_minutes'];
+                $routeGeometry = $routeData['geometry'];
+            } else {
+                $distanceKm = $this->calculateDistanceKm(
+                    (float) $originLat,
+                    (float) $originLng,
+                    (float) $destinationLat,
+                    (float) $destinationLng,
+                );
+
+                $estimatedDurationMinutes = (int) ceil(($distanceKm / 45) * 60);
+            }
+        }
+
         TransportRoute::create([
             'transporter_id' => $transporter->id,
             'vehicle_id' => $request->integer('vehicle_id'),
             'origin' => $request->string('origin')->toString(),
+            'origin_lat' => $originLat,
+            'origin_lng' => $originLng,
             'destination' => $request->string('destination')->toString(),
+            'destination_lat' => $destinationLat,
+            'destination_lng' => $destinationLng,
             'departure_at' => $request->date('departure_at'),
             'available_capacity_kg' => $request->input('available_capacity_kg'),
+            'distance_km' => $distanceKm,
+            'estimated_duration_minutes' => $estimatedDurationMinutes,
+            'route_geometry' => $routeGeometry,
             'permitted_cargo_type' => $request->string('permitted_cargo_type')->toString(),
             'status' => TransportRoute::STATUS_PUBLISHED,
         ]);
@@ -341,5 +396,29 @@ class TransportRouteController extends Controller
         $digits = preg_replace('/\D+/', '', $value);
 
         return $digits ?: null;
+    }
+
+    private function calculateDistanceKm(
+        float $originLat,
+        float $originLng,
+        float $destinationLat,
+        float $destinationLng
+    ): float {
+        $earthRadiusKm = 6371;
+
+        $latFrom = deg2rad($originLat);
+        $lngFrom = deg2rad($originLng);
+        $latTo = deg2rad($destinationLat);
+        $lngTo = deg2rad($destinationLng);
+
+        $latDelta = $latTo - $latFrom;
+        $lngDelta = $lngTo - $lngFrom;
+
+        $angle = 2 * asin(sqrt(
+            pow(sin($latDelta / 2), 2) +
+            cos($latFrom) * cos($latTo) * pow(sin($lngDelta / 2), 2)
+        ));
+
+        return round($earthRadiusKm * $angle, 2);
     }
 }

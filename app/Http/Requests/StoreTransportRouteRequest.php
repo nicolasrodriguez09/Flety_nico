@@ -34,10 +34,14 @@ class StoreTransportRouteRequest extends FormRequest
                 }),
             ],
             'origin' => ['required', 'string', 'max:255'],
+            'origin_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'origin_lng' => ['nullable', 'numeric', 'between:-180,180'],
+
             'destination' => ['required', 'string', 'max:255', 'different:origin'],
+            'destination_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'destination_lng' => ['nullable', 'numeric', 'between:-180,180'],
+
             'departure_at' => ['required', 'date', 'after:now'],
-            'available_capacity_kg' => ['required', 'numeric', 'gt:0', 'max:99999999.99'],
-            'permitted_cargo_type' => ['required', 'string', 'max:100'],
         ];
     }
 
@@ -60,6 +64,12 @@ class StoreTransportRouteRequest extends FormRequest
 
             if ($vehicle && (float) $this->input('available_capacity_kg') > (float) $vehicle->capacity_kg) {
                 $validator->errors()->add('available_capacity_kg', 'La capacidad disponible no puede superar la capacidad del vehiculo.');
+            }
+            $hasOriginCoords = $this->filled('origin_lat') && $this->filled('origin_lng');
+            $hasDestinationCoords = $this->filled('destination_lat') && $this->filled('destination_lng');
+
+            if ($hasOriginCoords !== $hasDestinationCoords) {
+                $validator->errors()->add('origin_lat', 'Selecciona en el mapa tanto el punto de salida como el punto de llegada.');
             }
         });
     }
