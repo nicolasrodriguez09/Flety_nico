@@ -1,5 +1,7 @@
+import RouteMap from '@/Components/RouteMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 
 const statusLabels = {
     accepted: 'Aceptada',
@@ -210,11 +212,17 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
     const routeForm = useForm({
         vehicle_id: approvedVehicles[0]?.id ?? '',
         origin: '',
+        origin_lat: '',
+        origin_lng: '',
         destination: '',
+        destination_lat: '',
+        destination_lng: '',
         departure_at: '',
         available_capacity_kg: '',
         permitted_cargo_type: '',
     });
+
+    const [selectionMode, setSelectionMode] = useState('origin');
 
     const selectedVehicle = vehicles.find(
         (vehicle) => String(vehicle.id) === String(routeForm.data.vehicle_id),
@@ -261,14 +269,25 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                     event.preventDefault();
                     routeForm.post(route('transporter.routes.store'), {
                         preserveScroll: true,
-                        onSuccess: () =>
+                        onSuccess: () => {
+                            alert('Ruta publicada correctamente');
+
                             routeForm.reset(
                                 'origin',
+                                'origin_lat',
+                                'origin_lng',
                                 'destination',
+                                'destination_lat',
+                                'destination_lng',
                                 'departure_at',
                                 'available_capacity_kg',
                                 'permitted_cargo_type',
-                            ),
+                            );
+                        },
+                        onError: (errors) => {
+                            console.log('Errores al publicar ruta:', errors);
+                            alert('No se pudo publicar la ruta. Revisa la consola del navegador.');
+                        },
                     });
                 }}
             >
@@ -406,7 +425,103 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                         />
                     </div>
                 </div>
+                
+                <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                                Ubicación en mapa
+                            </p>
+                            <p className="mt-1 text-xs text-slate-600">
+                                Selecciona primero el punto de salida y luego el punto de llegada.
+                            </p>
+                        </div>
 
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSelectionMode('origin')}
+                                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                                    selectionMode === 'origin'
+                                        ? 'bg-emerald-700 text-white'
+                                        : 'bg-white text-slate-700'
+                                }`}
+                            >
+                                Marcar salida
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setSelectionMode('destination')}
+                                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                                    selectionMode === 'destination'
+                                        ? 'bg-emerald-700 text-white'
+                                        : 'bg-white text-slate-700'
+                                }`}
+                            >
+                                Marcar llegada
+                            </button>
+                        </div>
+                    </div>
+
+                    <RouteMap
+                        selectable
+                        selectionMode={selectionMode}
+                        originPoint={
+                            routeForm.data.origin_lat && routeForm.data.origin_lng
+                                ? {
+                                    lat: Number(routeForm.data.origin_lat),
+                                    lng: Number(routeForm.data.origin_lng),
+                                }
+                                : null
+                        }
+                        destinationPoint={
+                            routeForm.data.destination_lat && routeForm.data.destination_lng
+                                ? {
+                                    lat: Number(routeForm.data.destination_lat),
+                                    lng: Number(routeForm.data.destination_lng),
+                                }
+                                : null
+                        }
+                        onSelectPoint={(point) => {
+                            if (point.type === 'origin') {
+                                routeForm.setData({
+                                    ...routeForm.data,
+                                    origin_lat: point.lat,
+                                    origin_lng: point.lng,
+                                });
+                                setSelectionMode('destination');
+                            }
+
+                            if (point.type === 'destination') {
+                                routeForm.setData({
+                                    ...routeForm.data,
+                                    destination_lat: point.lat,
+                                    destination_lng: point.lng,
+                                });
+                            }
+                        }}
+                    />
+
+                    <div className="mt-3 grid gap-3 text-xs text-slate-600 sm:grid-cols-2">
+                        <div className="rounded-2xl bg-white px-4 py-3">
+                            <strong>Salida:</strong>{' '}
+                            {routeForm.data.origin_lat && routeForm.data.origin_lng
+                                ? `${routeForm.data.origin_lat}, ${routeForm.data.origin_lng}`
+                                : 'Sin seleccionar'}
+                        </div>
+
+                        <div className="rounded-2xl bg-white px-4 py-3">
+                            <strong>Llegada:</strong>{' '}
+                            {routeForm.data.destination_lat && routeForm.data.destination_lng
+                                ? `${routeForm.data.destination_lat}, ${routeForm.data.destination_lng}`
+                                : 'Sin seleccionar'}
+                        </div>
+                    </div>
+
+                    <FieldError message={routeForm.errors.origin_lat} />
+                    <FieldError message={routeForm.errors.destination_lat} />
+                </div>
                 <div>
                     <label
                         htmlFor="permitted_cargo_type"
@@ -432,7 +547,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
 
                 <button
                     type="submit"
-                    disabled={routeForm.processing || !canSubmitRoute}
+                    disabled={routeForm.processing}
                     className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                     {routeForm.processing ? 'Publicando...' : 'Publicar ruta'}

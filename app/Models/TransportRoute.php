@@ -19,9 +19,15 @@ class TransportRoute extends Model
         'transporter_id',
         'vehicle_id',
         'origin',
+        'origin_lat',
+        'origin_lng',
         'destination',
+        'destination_lat',
+        'destination_lng',
         'departure_at',
         'available_capacity_kg',
+        'distance_km',
+        'estimated_duration_minutes',
         'permitted_cargo_type',
         'status',
     ];
@@ -31,6 +37,12 @@ class TransportRoute extends Model
         return [
             'departure_at' => 'datetime',
             'available_capacity_kg' => 'decimal:2',
+            'origin_lat' => 'decimal:7',
+            'origin_lng' => 'decimal:7',
+            'destination_lat' => 'decimal:7',
+            'destination_lng' => 'decimal:7',
+            'distance_km' => 'decimal:2',
+            'estimated_duration_minutes' => 'integer',
         ];
     }
 
