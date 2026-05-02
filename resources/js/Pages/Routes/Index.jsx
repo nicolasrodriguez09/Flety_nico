@@ -741,6 +741,28 @@ function TransporterView({
 
             <section className={cardClassName()}>
                 <SectionTitle
+                    eyebrow="Mapa"
+                    title="Visualización de mis rutas"
+                    description="Aquí puedes ver en el mapa las rutas de retorno que tienen puntos de salida y llegada registrados."
+                />
+
+                <div className="mt-6">
+                    {myRoutes.some(
+                        (route) =>
+                            route.origin_lat &&
+                            route.origin_lng &&
+                            route.destination_lat &&
+                            route.destination_lng,
+                    ) ? (
+                        <RouteMap routes={myRoutes} height="420px" />
+                    ) : (
+                        <EmptyState message="Todavía no tienes rutas con puntos seleccionados en el mapa." />
+                    )}
+                </div>
+            </section>
+
+            <section className={cardClassName()}>
+                <SectionTitle
                     eyebrow="Persistencia"
                     title="Mis rutas registradas"
                     description="Consulta de las rutas almacenadas para el transportista autenticado y su capacidad restante."

@@ -115,7 +115,7 @@ export default function RouteMap({
                 ) : null}
 
                 {validRoutes.map((route) => {
-                    const positions = [
+                    const straightPositions = [
                         [Number(route.origin_lat), Number(route.origin_lng)],
                         [
                             Number(route.destination_lat),
@@ -123,9 +123,20 @@ export default function RouteMap({
                         ],
                     ];
 
+                    const routeGeometryPositions = Array.isArray(route.route_geometry)
+                        ? route.route_geometry.map((point) => [
+                            Number(point[1]),
+                            Number(point[0]),
+                        ])
+                        : [];
+
+                    const positions = routeGeometryPositions.length
+                        ? routeGeometryPositions
+                        : straightPositions;
+
                     return (
                         <div key={route.id}>
-                            <Marker position={positions[0]} icon={markerIcon}>
+                            <Marker position={straightPositions[0]} icon={markerIcon}>
                                 <Popup>
                                     <strong>Salida:</strong> {route.origin}
                                     <br />
@@ -137,7 +148,7 @@ export default function RouteMap({
                                 </Popup>
                             </Marker>
 
-                            <Marker position={positions[1]} icon={markerIcon}>
+                            <Marker position={straightPositions[1]} icon={markerIcon}>
                                 <Popup>
                                     <strong>Llegada:</strong>{' '}
                                     {route.destination}

@@ -30,6 +30,7 @@ class TransportRoute extends Model
         'estimated_duration_minutes',
         'permitted_cargo_type',
         'status',
+        'route_geometry',
     ];
 
     protected function casts(): array
@@ -43,6 +44,7 @@ class TransportRoute extends Model
             'destination_lng' => 'decimal:7',
             'distance_km' => 'decimal:2',
             'estimated_duration_minutes' => 'integer',
+            'route_geometry' => 'array',
         ];
     }
 
