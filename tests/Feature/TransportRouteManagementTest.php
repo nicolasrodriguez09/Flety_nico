@@ -282,6 +282,38 @@ class TransportRouteManagementTest extends TestCase
         $response->assertDontSee($pastRoute->origin);
     }
 
+    public function test_producer_can_filter_available_routes_by_origin_and_destination(): void
+    {
+        $visibleRoute = $this->createPublishedRoute([
+            'origin' => 'Tunja Centro',
+            'destination' => 'Bogota Corabastos',
+        ], 'search-visible@example.com');
+
+        $hiddenByOrigin = $this->createPublishedRoute([
+            'origin' => 'Neiva',
+            'destination' => 'Bogota Corabastos',
+        ], 'search-hidden-origin@example.com');
+
+        $hiddenByDestination = $this->createPublishedRoute([
+            'origin' => 'Tunja Norte',
+            'destination' => 'Cali',
+        ], 'search-hidden-destination@example.com');
+
+        $producer = $this->createProducerUser('route-search@example.com');
+
+        $response = $this->actingAs($producer)
+            ->get(route('producer.routes.index', [
+                'origin' => 'Tunja',
+                'destination' => 'Bogota',
+            ]));
+
+        $response->assertOk();
+        $response->assertSee($visibleRoute->origin);
+        $response->assertSee($visibleRoute->destination);
+        $response->assertDontSee($hiddenByOrigin->origin);
+        $response->assertDontSee($hiddenByDestination->destination);
+    }
+
     public function test_producer_cannot_see_transporter_contact_before_request_is_accepted(): void
     {
         $route = $this->createPublishedRoute();

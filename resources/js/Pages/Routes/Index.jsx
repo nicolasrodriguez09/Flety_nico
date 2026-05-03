@@ -1,6 +1,6 @@
 import RouteMap from '@/Components/RouteMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 const statusLabels = {
@@ -833,7 +833,12 @@ function TransporterView({
     );
 }
 
-function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
+function ProducerView({
+    availableRoutes,
+    routeFilters = {},
+    myRequests,
+    confirmedServices,
+}) {
     const requestForm = useForm({
         transport_route_id: availableRoutes[0]?.id ?? '',
         cargo_weight_kg: '',
@@ -841,12 +846,52 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
         delivery_destination: '',
         estimated_cost: '',
     });
+    const [searchFilters, setSearchFilters] = useState({
+        origin: routeFilters.origin ?? '',
+        destination: routeFilters.destination ?? '',
+    });
     const mappableAvailableRoutes = availableRoutes.filter(hasRouteCoordinates);
     const selectedRoute = availableRoutes.find(
         (transportRoute) =>
             String(transportRoute.id) ===
             String(requestForm.data.transport_route_id),
     );
+    const hasActiveSearch =
+        Boolean(routeFilters.origin) || Boolean(routeFilters.destination);
+
+    const submitSearch = (event) => {
+        event.preventDefault();
+
+        router.get(
+            route('producer.routes.index'),
+            {
+                origin: searchFilters.origin.trim() || undefined,
+                destination: searchFilters.destination.trim() || undefined,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    };
+
+    const clearSearch = () => {
+        setSearchFilters({
+            origin: '',
+            destination: '',
+        });
+
+        router.get(
+            route('producer.routes.index'),
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    };
 
     return (
         <>
@@ -866,6 +911,86 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
                         <EmptyState message="Todavia no tienes servicios confirmados." />
                     )}
                 </div>
+            </section>
+
+            <section className={cardClassName()}>
+                <SectionTitle
+                    eyebrow="Busqueda"
+                    title="Buscar transportistas por ruta"
+                    description="Filtra las rutas activas por zona de salida y zona de llegada para encontrar opciones disponibles para tu carga."
+                />
+
+                <form
+                    className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto]"
+                    onSubmit={submitSearch}
+                >
+                    <div>
+                        <label
+                            htmlFor="search_origin"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Zona de salida
+                        </label>
+                        <input
+                            id="search_origin"
+                            value={searchFilters.origin}
+                            onChange={(event) =>
+                                setSearchFilters((current) => ({
+                                    ...current,
+                                    origin: event.target.value,
+                                }))
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. Tunja"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            htmlFor="search_destination"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Zona de llegada
+                        </label>
+                        <input
+                            id="search_destination"
+                            value={searchFilters.destination}
+                            onChange={(event) =>
+                                setSearchFilters((current) => ({
+                                    ...current,
+                                    destination: event.target.value,
+                                }))
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. Bogota"
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row lg:items-end">
+                        <button
+                            type="submit"
+                            className="inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                        >
+                            Buscar rutas
+                        </button>
+
+                        {hasActiveSearch ? (
+                            <button
+                                type="button"
+                                onClick={clearSearch}
+                                className="inline-flex justify-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                            >
+                                Limpiar
+                            </button>
+                        ) : null}
+                    </div>
+                </form>
+
+                <p className="mt-4 text-sm text-slate-600">
+                    {availableRoutes.length === 1
+                        ? '1 ruta disponible encontrada.'
+                        : `${availableRoutes.length} rutas disponibles encontradas.`}
+                </p>
             </section>
 
             <section className={cardClassName()}>
@@ -1240,6 +1365,7 @@ export default function RoutesIndex({
     vehicles,
     myRoutes,
     availableRoutes,
+    routeFilters = {},
     myRequests,
     incomingRequests = [],
     confirmedServices = [],
@@ -1275,6 +1401,7 @@ export default function RoutesIndex({
                     {role === 'productor' ? (
                         <ProducerView
                             availableRoutes={availableRoutes}
+                            routeFilters={routeFilters}
                             myRequests={myRequests}
                             confirmedServices={confirmedServices}
                         />

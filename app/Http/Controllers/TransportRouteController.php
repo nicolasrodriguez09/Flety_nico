@@ -132,6 +132,10 @@ class TransportRouteController extends Controller
         ]);
 
         $producer = $user->producerProfile;
+        $routeFilters = [
+            'origin' => trim($request->string('origin')->toString()),
+            'destination' => trim($request->string('destination')->toString()),
+        ];
 
         $availableRoutes = TransportRoute::query()
             ->with([
@@ -141,7 +145,12 @@ class TransportRouteController extends Controller
             ->where('status', TransportRoute::STATUS_PUBLISHED)
             ->where('departure_at', '>', now())
             ->whereHas('transporter', fn ($query) => $query->where('validation_status', 'approved'))
+            ->when($routeFilters['origin'] !== '', fn (Builder $query) => $query
+                ->where('origin', 'like', '%'.$routeFilters['origin'].'%'))
+            ->when($routeFilters['destination'] !== '', fn (Builder $query) => $query
+                ->where('destination', 'like', '%'.$routeFilters['destination'].'%'))
             ->orderBy('departure_at')
+            ->limit(50)
             ->get()
             ->map(fn (TransportRoute $route) => [
                 'id' => $route->id,
@@ -219,6 +228,7 @@ class TransportRouteController extends Controller
             'vehicles' => [],
             'myRoutes' => [],
             'availableRoutes' => $availableRoutes,
+            'routeFilters' => $routeFilters,
             'myRequests' => $myRequests,
             'incomingRequests' => [],
             'confirmedServices' => $confirmedServices,
