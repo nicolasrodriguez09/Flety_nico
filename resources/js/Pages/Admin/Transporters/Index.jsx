@@ -7,6 +7,10 @@ const statusLabels = {
     rejected: 'Rechazado',
 };
 
+function panelClassName(extra = '') {
+    return `animate-panel-rise rounded-2xl border border-[#dfe8dc] bg-white p-4 shadow-[0_18px_42px_-34px_rgba(31,74,49,0.35)] sm:p-6 ${extra}`.trim();
+}
+
 function StatusBadge({ status }) {
     const styles = {
         approved: 'bg-emerald-100 text-emerald-700',
@@ -29,7 +33,7 @@ function TransporterCard({ transporter }) {
     };
 
     return (
-        <article className="rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-sm">
+        <article className={panelClassName()}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -52,14 +56,14 @@ function TransporterCard({ transporter }) {
                     <button
                         type="button"
                         onClick={() => submitDecision(transporter.approve_url)}
-                        className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                        className="interactive-lift rounded-xl bg-[#427c46] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#356b3f]"
                     >
                         Validar
                     </button>
                     <button
                         type="button"
                         onClick={() => submitDecision(transporter.reject_url)}
-                        className="rounded-2xl border border-rose-200 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                        className="interactive-lift rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
                     >
                         Rechazar
                     </button>
@@ -74,7 +78,7 @@ function TransporterCard({ transporter }) {
                             href={document.href}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-emerald-200 hover:bg-emerald-50"
+                            className="interactive-lift rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-emerald-200 hover:bg-emerald-50"
                         >
                             <p className="text-sm font-semibold text-slate-900">
                                 {document.label}
@@ -102,7 +106,7 @@ export default function AdminTransportersIndex({ transporters = [] }) {
         <AuthenticatedLayout
             header={
                 <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#427c46]">
                         Administracion
                     </p>
                     <h2 className="mt-2 text-2xl font-semibold leading-tight text-slate-900">
@@ -113,8 +117,8 @@ export default function AdminTransportersIndex({ transporters = [] }) {
         >
             <Head title="Validar transportistas" />
 
-            <div className="py-10">
-                <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
+            <div className="bg-[linear-gradient(180deg,#eef7ec_0%,#f7faf4_100%)] py-5 sm:py-7">
+                <div className="mx-auto flex max-w-[1540px] flex-col gap-5 px-3 sm:px-5 lg:px-8">
                     {flash.success ? (
                         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
                             {flash.success}
@@ -126,9 +130,9 @@ export default function AdminTransportersIndex({ transporters = [] }) {
                         </section>
                     ) : null}
 
-                    <section className="rounded-[2rem] border border-white/80 bg-white/80 p-6 shadow-sm">
+                    <section className={panelClassName()}>
                         <div className="flex flex-col gap-2">
-                            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
                                 Pendientes
                             </p>
                             <h3 className="text-2xl font-semibold text-slate-900">
@@ -151,7 +155,7 @@ export default function AdminTransportersIndex({ transporters = [] }) {
                                 />
                             ))
                         ) : (
-                            <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/80 px-6 py-10 text-sm text-slate-500">
+                            <div className="rounded-[1.3rem] border border-dashed border-slate-300 bg-white/90 px-6 py-10 text-sm text-slate-500">
                                 No hay transportistas pendientes por validar.
                             </div>
                         )}

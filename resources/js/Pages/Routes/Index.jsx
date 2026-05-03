@@ -48,7 +48,7 @@ function hasRouteCoordinates(route) {
 }
 
 function cardClassName(extra = '') {
-    return `rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-sm ${extra}`.trim();
+    return `animate-panel-rise rounded-2xl border border-[#dfe8dc] bg-white p-4 shadow-[0_18px_42px_-34px_rgba(31,74,49,0.35)] sm:p-6 ${extra}`.trim();
 }
 
 function StatusBadge({ status }) {
@@ -84,7 +84,7 @@ function FieldError({ message }) {
 function SectionTitle({ eyebrow, title, description }) {
     return (
         <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
                 {eyebrow}
             </p>
             <h3 className="text-2xl font-semibold text-slate-900">{title}</h3>
@@ -99,7 +99,7 @@ function SectionTitle({ eyebrow, title, description }) {
 
 function EmptyState({ message }) {
     return (
-        <div className="rounded-3xl border border-dashed border-slate-300 px-5 py-8 text-sm text-slate-500">
+        <div className="rounded-[1.3rem] border border-dashed border-slate-300 bg-slate-50/80 px-5 py-8 text-sm text-slate-500">
             {message}
         </div>
     );
@@ -109,12 +109,12 @@ function FlashMessages({ success, error }) {
     return (
         <>
             {success ? (
-                <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
+                <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
                     {success}
                 </section>
             ) : null}
             {error ? (
-                <section className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
+                <section className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
                     {error}
                 </section>
             ) : null}
@@ -450,7 +450,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('origin')}
-                                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                                     selectionMode === 'origin'
                                         ? 'bg-emerald-700 text-white'
                                         : 'bg-white text-slate-700'
@@ -462,7 +462,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('destination')}
-                                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                                     selectionMode === 'destination'
                                         ? 'bg-emerald-700 text-white'
                                         : 'bg-white text-slate-700'
@@ -969,7 +969,7 @@ function ProducerView({
                     <div className="flex flex-col gap-3 sm:flex-row lg:items-end">
                         <button
                             type="submit"
-                            className="inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                            className="interactive-lift inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
                         >
                             Buscar rutas
                         </button>
@@ -978,7 +978,7 @@ function ProducerView({
                             <button
                                 type="button"
                                 onClick={clearSearch}
-                                className="inline-flex justify-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                                className="interactive-lift inline-flex justify-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
                             >
                                 Limpiar
                             </button>
@@ -1111,7 +1111,7 @@ function ProducerView({
                                                 transportRoute.id,
                                             )
                                         }
-                                        className="mt-4 inline-flex rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+                                    className="interactive-lift mt-4 inline-flex rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
                                     >
                                         Ver en mapa y solicitar
                                     </button>
@@ -1291,7 +1291,7 @@ function ProducerView({
                             disabled={
                                 requestForm.processing || !availableRoutes.length
                             }
-                            className="inline-flex rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
+                            className="interactive-lift inline-flex rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
                         >
                             Crear solicitud
                         </button>
@@ -1384,8 +1384,8 @@ export default function RoutesIndex({
         >
             <Head title="Rutas y solicitudes" />
 
-            <div className="py-10">
-                <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
+            <div className="bg-[linear-gradient(180deg,#eef7ec_0%,#f7faf4_100%)] py-5 sm:py-7">
+                <div className="mx-auto flex max-w-[1540px] flex-col gap-5 px-3 sm:px-5 lg:px-8">
                     <FlashMessages success={flash.success} error={flash.error} />
 
                     {role === 'transportista' ? (
