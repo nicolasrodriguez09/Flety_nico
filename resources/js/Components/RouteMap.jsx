@@ -4,8 +4,10 @@ import {
     Polyline,
     Popup,
     TileLayer,
+    useMap,
     useMapEvents,
 } from 'react-leaflet';
+import { Fragment, useEffect } from 'react';
 import L from 'leaflet';
 
 const defaultCenter = [4.5709, -74.2973];
@@ -35,6 +37,65 @@ function MapClickSelector({ mode, onSelectPoint }) {
     return null;
 }
 
+function hasPoint(lat, lng) {
+    return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
+}
+
+function routePositions(route) {
+    if (
+        !hasPoint(route.origin_lat, route.origin_lng) ||
+        !hasPoint(route.destination_lat, route.destination_lng)
+    ) {
+        return [];
+    }
+
+    const straightPositions = [
+        [Number(route.origin_lat), Number(route.origin_lng)],
+        [Number(route.destination_lat), Number(route.destination_lng)],
+    ];
+
+    const geometryPositions = Array.isArray(route.route_geometry)
+        ? route.route_geometry
+            .map((point) => [Number(point[1]), Number(point[0])])
+            .filter(([lat, lng]) => hasPoint(lat, lng))
+        : [];
+
+    return geometryPositions.length ? geometryPositions : straightPositions;
+}
+
+function FitRouteBounds({ routes, originPoint, destinationPoint }) {
+    const map = useMap();
+
+    useEffect(() => {
+        const points = routes.flatMap((route) => routePositions(route));
+
+        if (hasPoint(originPoint?.lat, originPoint?.lng)) {
+            points.push([Number(originPoint.lat), Number(originPoint.lng)]);
+        }
+
+        if (hasPoint(destinationPoint?.lat, destinationPoint?.lng)) {
+            points.push([Number(destinationPoint.lat), Number(destinationPoint.lng)]);
+        }
+
+        if (points.length === 0) {
+            return;
+        }
+
+        if (points.length === 1) {
+            map.setView(points[0], 9);
+
+            return;
+        }
+
+        map.fitBounds(L.latLngBounds(points), {
+            maxZoom: 11,
+            padding: [32, 32],
+        });
+    }, [destinationPoint, map, originPoint, routes]);
+
+    return null;
+}
+
 export default function RouteMap({
     routes = [],
     originPoint = null,
@@ -46,16 +107,14 @@ export default function RouteMap({
 }) {
     const validRoutes = routes.filter(
         (route) =>
-            route.origin_lat &&
-            route.origin_lng &&
-            route.destination_lat &&
-            route.destination_lng,
+            hasPoint(route.origin_lat, route.origin_lng) &&
+            hasPoint(route.destination_lat, route.destination_lng),
     );
 
     let center = defaultCenter;
 
-    if (originPoint?.lat && originPoint?.lng) {
-        center = [originPoint.lat, originPoint.lng];
+    if (hasPoint(originPoint?.lat, originPoint?.lng)) {
+        center = [Number(originPoint.lat), Number(originPoint.lng)];
     } else if (validRoutes.length > 0) {
         center = [
             Number(validRoutes[0].origin_lat),
@@ -84,32 +143,42 @@ export default function RouteMap({
                     />
                 ) : null}
 
-                {originPoint?.lat && originPoint?.lng ? (
+                <FitRouteBounds
+                    routes={validRoutes}
+                    originPoint={originPoint}
+                    destinationPoint={destinationPoint}
+                />
+
+                {hasPoint(originPoint?.lat, originPoint?.lng) ? (
                     <Marker
-                        position={[originPoint.lat, originPoint.lng]}
+                        position={[Number(originPoint.lat), Number(originPoint.lng)]}
                         icon={markerIcon}
                     >
                         <Popup>Punto de salida seleccionado</Popup>
                     </Marker>
                 ) : null}
 
-                {destinationPoint?.lat && destinationPoint?.lng ? (
+                {hasPoint(destinationPoint?.lat, destinationPoint?.lng) ? (
                     <Marker
-                        position={[destinationPoint.lat, destinationPoint.lng]}
+                        position={[
+                            Number(destinationPoint.lat),
+                            Number(destinationPoint.lng),
+                        ]}
                         icon={markerIcon}
                     >
                         <Popup>Punto de llegada seleccionado</Popup>
                     </Marker>
                 ) : null}
 
-                {originPoint?.lat &&
-                originPoint?.lng &&
-                destinationPoint?.lat &&
-                destinationPoint?.lng ? (
+                {hasPoint(originPoint?.lat, originPoint?.lng) &&
+                hasPoint(destinationPoint?.lat, destinationPoint?.lng) ? (
                     <Polyline
                         positions={[
-                            [originPoint.lat, originPoint.lng],
-                            [destinationPoint.lat, destinationPoint.lng],
+                            [Number(originPoint.lat), Number(originPoint.lng)],
+                            [
+                                Number(destinationPoint.lat),
+                                Number(destinationPoint.lng),
+                            ],
                         ]}
                     />
                 ) : null}
@@ -123,19 +192,10 @@ export default function RouteMap({
                         ],
                     ];
 
-                    const routeGeometryPositions = Array.isArray(route.route_geometry)
-                        ? route.route_geometry.map((point) => [
-                            Number(point[1]),
-                            Number(point[0]),
-                        ])
-                        : [];
-
-                    const positions = routeGeometryPositions.length
-                        ? routeGeometryPositions
-                        : straightPositions;
+                    const positions = routePositions(route);
 
                     return (
-                        <div key={route.id}>
+                        <Fragment key={route.id}>
                             <Marker position={straightPositions[0]} icon={markerIcon}>
                                 <Popup>
                                     <strong>Salida:</strong> {route.origin}
@@ -158,7 +218,7 @@ export default function RouteMap({
                             </Marker>
 
                             <Polyline positions={positions} />
-                        </div>
+                        </Fragment>
                     );
                 })}
             </MapContainer>

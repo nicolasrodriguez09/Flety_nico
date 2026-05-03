@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import RouteMap from '@/Components/RouteMap';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 
 function SearchIcon() {
@@ -195,6 +196,15 @@ function DataList({ section }) {
     );
 }
 
+function hasRouteCoordinates(route) {
+    return (
+        Number.isFinite(Number(route?.origin_lat)) &&
+        Number.isFinite(Number(route?.origin_lng)) &&
+        Number.isFinite(Number(route?.destination_lat)) &&
+        Number.isFinite(Number(route?.destination_lng))
+    );
+}
+
 export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) {
     const { auth, flash } = usePage().props;
     const user = auth.user;
@@ -214,10 +224,14 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
             infoLabel: 'Estado',
             infoValue: 'Pendiente',
             statusLabel: 'Base',
+            mapRoute: null,
         },
         metrics: [],
         lists: [],
     };
+    const spotlightMapRoute = hasRouteCoordinates(data.spotlight.mapRoute)
+        ? data.spotlight.mapRoute
+        : null;
 
     return (
         <AuthenticatedLayout
@@ -370,7 +384,16 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
                                                     </div>
 
                                                     <div className="mt-5 rounded-[1.3rem] bg-[linear-gradient(180deg,rgba(231,239,225,0.5)_0%,rgba(244,247,239,0.9)_100%)] px-3 py-3">
-                                                        <TrendLine />
+                                                        {spotlightMapRoute ? (
+                                                            <RouteMap
+                                                                routes={[
+                                                                    spotlightMapRoute,
+                                                                ]}
+                                                                height="220px"
+                                                            />
+                                                        ) : (
+                                                            <TrendLine />
+                                                        )}
                                                     </div>
                                                 </div>
 

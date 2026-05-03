@@ -42,6 +42,8 @@ class StoreTransportRouteRequest extends FormRequest
             'destination_lng' => ['nullable', 'numeric', 'between:-180,180'],
 
             'departure_at' => ['required', 'date', 'after:now'],
+            'available_capacity_kg' => ['required', 'numeric', 'gt:0', 'max:99999999.99'],
+            'permitted_cargo_type' => ['required', 'string', 'max:100'],
         ];
     }
 

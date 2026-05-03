@@ -38,6 +38,15 @@ function formatCurrency(value) {
     }).format(Number(value));
 }
 
+function hasRouteCoordinates(route) {
+    return (
+        Number.isFinite(Number(route.origin_lat)) &&
+        Number.isFinite(Number(route.origin_lng)) &&
+        Number.isFinite(Number(route.destination_lat)) &&
+        Number.isFinite(Number(route.destination_lng))
+    );
+}
+
 function cardClassName(extra = '') {
     return `rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-sm ${extra}`.trim();
 }
@@ -832,6 +841,12 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
         delivery_destination: '',
         estimated_cost: '',
     });
+    const mappableAvailableRoutes = availableRoutes.filter(hasRouteCoordinates);
+    const selectedRoute = availableRoutes.find(
+        (transportRoute) =>
+            String(transportRoute.id) ===
+            String(requestForm.data.transport_route_id),
+    );
 
     return (
         <>
@@ -849,6 +864,53 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
                         ))
                     ) : (
                         <EmptyState message="Todavia no tienes servicios confirmados." />
+                    )}
+                </div>
+            </section>
+
+            <section className={cardClassName()}>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <SectionTitle
+                        eyebrow="Mapa"
+                        title="Rutas publicadas"
+                        description="Visualiza las rutas disponibles con puntos de salida y llegada registrados por transportistas aprobados."
+                    />
+
+                    {selectedRoute ? (
+                        <div className="rounded-3xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm text-slate-700 lg:max-w-sm">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                                Ruta seleccionada
+                            </p>
+                            <p className="mt-2 font-semibold text-slate-900">
+                                {selectedRoute.origin} {'->'}{' '}
+                                {selectedRoute.destination}
+                            </p>
+                            <p className="mt-1">
+                                Salida {formatDate(selectedRoute.departure_at)}
+                            </p>
+                        </div>
+                    ) : null}
+                </div>
+
+                <div className="mt-6">
+                    {mappableAvailableRoutes.length ? (
+                        <RouteMap
+                            routes={
+                                selectedRoute && hasRouteCoordinates(selectedRoute)
+                                    ? [
+                                        selectedRoute,
+                                        ...mappableAvailableRoutes.filter(
+                                            (transportRoute) =>
+                                                transportRoute.id !==
+                                                selectedRoute.id,
+                                        ),
+                                    ]
+                                    : mappableAvailableRoutes
+                            }
+                            height="440px"
+                        />
+                    ) : (
+                        <EmptyState message="No hay rutas publicadas con puntos de mapa en este momento." />
                     )}
                 </div>
             </section>
@@ -903,6 +965,31 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
                                             transportRoute.permitted_cargo_type
                                         }
                                     </p>
+                                    {transportRoute.distance_km ||
+                                    transportRoute.estimated_duration_minutes ? (
+                                        <p className="mt-1 text-sm text-slate-600">
+                                            Recorrido:{' '}
+                                            {transportRoute.distance_km
+                                                ? `${transportRoute.distance_km} km`
+                                                : 'Distancia pendiente'}
+                                            {' - '}
+                                            {transportRoute.estimated_duration_minutes
+                                                ? `${transportRoute.estimated_duration_minutes} min`
+                                                : 'duracion pendiente'}
+                                        </p>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            requestForm.setData(
+                                                'transport_route_id',
+                                                transportRoute.id,
+                                            )
+                                        }
+                                        className="mt-4 inline-flex rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+                                    >
+                                        Ver en mapa y solicitar
+                                    </button>
                                 </article>
                             ))
                         ) : (
