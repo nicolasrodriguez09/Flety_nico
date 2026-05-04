@@ -205,6 +205,289 @@ function hasRouteCoordinates(route) {
     );
 }
 
+function TransporterOperations({
+    user,
+    data,
+    entryRoute,
+    flash,
+    spotlightMapRoute,
+}) {
+    const primaryMetrics = data.metrics ?? [];
+    const routeList = data.lists?.[0];
+    const requestList = data.lists?.[1];
+
+    return (
+        <AuthenticatedLayout
+            header={
+                <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#27613b]">
+                        Cabina operativa
+                    </p>
+                    <h2 className="text-2xl font-semibold leading-tight text-slate-900">
+                        Bienvenido, Transportista
+                    </h2>
+                </div>
+            }
+        >
+            <Head title="Panel Transportista" />
+
+            <div className="min-h-screen bg-[linear-gradient(180deg,#e7f3e5_0%,#f5faf1_42%,#fbfcf8_100%)]">
+                <div className="space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+                    {flash.success ? (
+                        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
+                            {flash.success}
+                        </section>
+                    ) : null}
+                    {flash.error ? (
+                        <section className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
+                            {flash.error}
+                        </section>
+                    ) : null}
+
+                    <section className="animate-panel-rise overflow-hidden rounded-2xl border border-[#cfe1cb] bg-[#163b29] text-white shadow-[0_26px_60px_-42px_rgba(16,64,38,0.7)]">
+                        <div className="grid gap-0 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
+                            <div className="p-5 sm:p-7 lg:p-8">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a9d49e]">
+                                            {data.hero.badge}
+                                        </p>
+                                        <h3 className="mt-4 max-w-2xl text-3xl font-semibold leading-tight sm:text-4xl">
+                                            Ruta activa y solicitudes en un solo lugar
+                                        </h3>
+                                        <p className="mt-4 max-w-2xl text-sm leading-6 text-[#d9ead3]">
+                                            {data.hero.subtitle}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-[#eef8e9]">
+                                        <p className="text-xs uppercase tracking-[0.18em] text-[#b8ddb0]">
+                                            Conductor
+                                        </p>
+                                        <p className="mt-1 font-semibold">
+                                            {user.name}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                    {primaryMetrics.map((metric) => (
+                                        <article
+                                            key={metric.title}
+                                            className="rounded-2xl border border-white/12 bg-white/9 p-4"
+                                        >
+                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a9d49e]">
+                                                {metric.eyebrow}
+                                            </p>
+                                            <p className="mt-3 text-3xl font-semibold">
+                                                {metric.value}
+                                            </p>
+                                            <p className="mt-2 text-sm leading-5 text-[#dcebd6]">
+                                                {metric.title}
+                                            </p>
+                                        </article>
+                                    ))}
+                                </div>
+
+                                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                                    {entryRoute ? (
+                                        <Link
+                                            href={entryRoute}
+                                            className="interactive-lift inline-flex justify-center rounded-2xl bg-[#7dbf59] px-5 py-4 text-sm font-semibold text-[#123420] transition hover:bg-[#8ecb6d]"
+                                        >
+                                            Gestionar rutas y solicitudes
+                                        </Link>
+                                    ) : null}
+                                    <Link
+                                        href={route('transporter.vehicles.create')}
+                                        className="inline-flex justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm font-semibold text-white transition hover:bg-white/15"
+                                    >
+                                        Registrar vehiculo
+                                    </Link>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-white/10 bg-[#214c34] p-4 sm:p-6 xl:border-l xl:border-t-0">
+                                <div className="rounded-2xl border border-white/12 bg-white p-4 text-[#203029] shadow-[0_24px_48px_-34px_rgba(0,0,0,0.45)]">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
+                                                {data.spotlight.title}
+                                            </p>
+                                            <h3 className="mt-3 text-2xl font-semibold leading-tight">
+                                                {data.spotlight.route}
+                                                <span className="mx-2 text-[#86a98b]">
+                                                    {'->'}
+                                                </span>
+                                                {data.spotlight.routeTo}
+                                            </h3>
+                                            <p className="mt-2 text-sm font-medium text-[#52615a]">
+                                                {data.spotlight.dateLabel}
+                                            </p>
+                                        </div>
+                                        <span className="rounded-xl bg-[#edf4e8] px-3 py-2 text-sm font-semibold text-[#427c46]">
+                                            {data.spotlight.statusLabel}
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                                        <div className="rounded-xl bg-[#f3f8ef] px-4 py-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7d856e]">
+                                                Capacidad
+                                            </p>
+                                            <p className="mt-2 font-semibold text-[#203029]">
+                                                {data.spotlight.infoValue}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-xl bg-[#f3f8ef] px-4 py-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7d856e]">
+                                                Vehiculo
+                                            </p>
+                                            <p className="mt-2 font-semibold text-[#203029]">
+                                                {data.spotlight.vehicleLabel}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-xl bg-[#f3f8ef] px-4 py-3">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7d856e]">
+                                                Solicitudes
+                                            </p>
+                                            <p className="mt-2 font-semibold text-[#203029]">
+                                                {data.spotlight.requestsLabel}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 overflow-hidden rounded-xl border border-[#dce8d8] bg-[#f4f8ef] p-2">
+                                        {spotlightMapRoute ? (
+                                            <RouteMap
+                                                routes={[spotlightMapRoute]}
+                                                height="300px"
+                                            />
+                                        ) : (
+                                            <div className="flex min-h-[260px] items-center justify-center rounded-xl border border-dashed border-[#cfe1cb] bg-[#f8fbf6] px-6 text-center text-sm text-[#647067]">
+                                                Publica una ruta con puntos de mapa para ver el trayecto aqui.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <p className="mt-4 rounded-xl bg-[#edf4e8] px-4 py-3 text-sm font-medium text-[#3f6f4b]">
+                                        Carga permitida: {data.spotlight.cargoLabel}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+                        <article className="animate-panel-rise rounded-2xl border border-[#dfe8dc] bg-white p-5 shadow-[0_18px_42px_-34px_rgba(31,74,49,0.35)] sm:p-6">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
+                                        Rutas
+                                    </p>
+                                    <h3 className="mt-2 text-xl font-semibold text-[#203029]">
+                                        Ultimas publicaciones
+                                    </h3>
+                                </div>
+                                {entryRoute ? (
+                                    <Link
+                                        href={entryRoute}
+                                        className="rounded-xl border border-[#dce6d8] px-4 py-3 text-sm font-semibold text-[#3f6f4b] transition hover:bg-[#f4f8ef]"
+                                    >
+                                        Editar rutas
+                                    </Link>
+                                ) : null}
+                            </div>
+
+                            <div className="mt-5 space-y-3">
+                                {routeList?.items?.length ? (
+                                    routeList.items.map((item, index) => (
+                                        <div
+                                            key={`${routeList.title}-${index}`}
+                                            className="rounded-2xl border border-[#e1e9de] bg-[#f8fbf6] px-4 py-4"
+                                        >
+                                            <p className="font-semibold text-[#203029]">
+                                                {item.title}
+                                            </p>
+                                            <p className="mt-1 text-sm text-[#626a65]">
+                                                {item.meta}
+                                            </p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="rounded-2xl border border-dashed border-[#d8ddd2] px-4 py-7 text-sm text-[#69706b]">
+                                        {routeList?.emptyMessage}
+                                    </div>
+                                )}
+                            </div>
+                        </article>
+
+                        <article className="animate-panel-rise rounded-2xl border border-[#cfe1cb] bg-[#f7fbf4] p-5 shadow-[0_18px_42px_-34px_rgba(31,74,49,0.35)] sm:p-6">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
+                                        Solicitudes
+                                    </p>
+                                    <h3 className="mt-2 text-xl font-semibold text-[#203029]">
+                                        Productores esperando respuesta
+                                    </h3>
+                                </div>
+                                <span className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-[#427c46]">
+                                    Atencion rapida
+                                </span>
+                            </div>
+
+                            <div className="mt-5 space-y-3">
+                                {requestList?.items?.length ? (
+                                    requestList.items.map((item, index) => (
+                                        <div
+                                            key={`${requestList.title}-${index}`}
+                                            className="rounded-2xl border border-[#d9e8d4] bg-white px-4 py-4"
+                                        >
+                                            <p className="font-semibold text-[#203029]">
+                                                {item.title}
+                                            </p>
+                                            <p className="mt-1 text-sm text-[#626a65]">
+                                                {item.meta}
+                                            </p>
+                                            {item.actions?.length ? (
+                                                <div className="mt-3 flex flex-wrap gap-2">
+                                                    {item.actions.map((action) => (
+                                                        <button
+                                                            key={action.label}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                router.post(action.href, {}, {
+                                                                    preserveScroll: true,
+                                                                })
+                                                            }
+                                                            className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                                                                action.type === 'reject'
+                                                                    ? 'border border-rose-200 text-rose-700 hover:bg-rose-50'
+                                                                    : 'bg-emerald-700 text-white hover:bg-emerald-600'
+                                                            }`}
+                                                        >
+                                                            {action.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="rounded-2xl border border-dashed border-[#d8ddd2] bg-white px-4 py-7 text-sm text-[#69706b]">
+                                        {requestList?.emptyMessage}
+                                    </div>
+                                )}
+                            </div>
+                        </article>
+                    </section>
+                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}
+
 export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) {
     const { auth, flash } = usePage().props;
     const user = auth.user;
@@ -232,6 +515,18 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
     const spotlightMapRoute = hasRouteCoordinates(data.spotlight.mapRoute)
         ? data.spotlight.mapRoute
         : null;
+
+    if (role === 'transportista') {
+        return (
+            <TransporterOperations
+                user={user}
+                data={data}
+                entryRoute={entryRoute}
+                flash={flash}
+                spotlightMapRoute={spotlightMapRoute}
+            />
+        );
+    }
 
     return (
         <AuthenticatedLayout

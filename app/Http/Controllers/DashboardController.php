@@ -25,6 +25,8 @@ class DashboardController extends Controller
 
         $routes = $transporter
             ? TransportRoute::query()
+                ->with('vehicle:id,plate,vehicle_type,capacity_kg')
+                ->withCount('transportRequests')
                 ->where('transporter_id', $transporter->id)
                 ->orderByDesc('departure_at')
                 ->get()
@@ -32,6 +34,8 @@ class DashboardController extends Controller
 
         $nextRoute = $transporter
             ? TransportRoute::query()
+                ->with('vehicle:id,plate,vehicle_type,capacity_kg')
+                ->withCount('transportRequests')
                 ->where('transporter_id', $transporter->id)
                 ->where('departure_at', '>', now())
                 ->orderBy('departure_at')
@@ -84,6 +88,22 @@ class DashboardController extends Controller
                         'infoLabel' => 'Capacidad disponible',
                         'infoValue' => $this->formatKilograms($nextRoute->available_capacity_kg),
                         'statusLabel' => $this->humanizeStatus($nextRoute->status),
+                        'vehicleLabel' => $nextRoute->vehicle
+                            ? $nextRoute->vehicle->plate.' · '.$nextRoute->vehicle->vehicle_type
+                            : 'Vehiculo sin asignar',
+                        'cargoLabel' => $nextRoute->permitted_cargo_type ?: 'Carga sin especificar',
+                        'requestsLabel' => $nextRoute->transport_requests_count.' solicitudes',
+                        'mapRoute' => [
+                            'id' => $nextRoute->id,
+                            'origin' => $nextRoute->origin,
+                            'origin_lat' => $nextRoute->origin_lat !== null ? (float) $nextRoute->origin_lat : null,
+                            'origin_lng' => $nextRoute->origin_lng !== null ? (float) $nextRoute->origin_lng : null,
+                            'destination' => $nextRoute->destination,
+                            'destination_lat' => $nextRoute->destination_lat !== null ? (float) $nextRoute->destination_lat : null,
+                            'destination_lng' => $nextRoute->destination_lng !== null ? (float) $nextRoute->destination_lng : null,
+                            'available_capacity_kg' => (float) $nextRoute->available_capacity_kg,
+                            'route_geometry' => $nextRoute->route_geometry,
+                        ],
                     ]
                     : [
                         'title' => 'Proxima salida programada',
@@ -93,6 +113,10 @@ class DashboardController extends Controller
                         'infoLabel' => 'Capacidad disponible',
                         'infoValue' => 'Pendiente',
                         'statusLabel' => 'Sin actividad',
+                        'vehicleLabel' => 'Sin vehiculo asignado',
+                        'cargoLabel' => 'Sin carga registrada',
+                        'requestsLabel' => '0 solicitudes',
+                        'mapRoute' => null,
                     ],
                 'metrics' => [
                     [
