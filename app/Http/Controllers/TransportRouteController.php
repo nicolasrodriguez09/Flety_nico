@@ -238,6 +238,48 @@ class TransportRouteController extends Controller
         ]);
     }
 
+    public function producerShow(Request $request, TransportRoute $transportRoute): Response
+    {
+        $transportRoute->load([
+            'vehicle:id,plate,vehicle_type,capacity_kg',
+            'transporter.user:id,name',
+        ]);
+
+        abort_if(
+            $transportRoute->status !== TransportRoute::STATUS_PUBLISHED ||
+            $transportRoute->departure_at <= now() ||
+            ! $transportRoute->transporter?->isValidated(),
+            404
+        );
+
+        return Inertia::render('Routes/Show', [
+            'transportRoute' => [
+                'id' => $transportRoute->id,
+                'origin' => $transportRoute->origin,
+                'origin_lat' => $transportRoute->origin_lat !== null ? (float) $transportRoute->origin_lat : null,
+                'origin_lng' => $transportRoute->origin_lng !== null ? (float) $transportRoute->origin_lng : null,
+                'destination' => $transportRoute->destination,
+                'destination_lat' => $transportRoute->destination_lat !== null ? (float) $transportRoute->destination_lat : null,
+                'destination_lng' => $transportRoute->destination_lng !== null ? (float) $transportRoute->destination_lng : null,
+                'departure_at' => $transportRoute->departure_at?->toIso8601String(),
+                'available_capacity_kg' => (float) $transportRoute->available_capacity_kg,
+                'distance_km' => $transportRoute->distance_km !== null ? (float) $transportRoute->distance_km : null,
+                'estimated_duration_minutes' => $transportRoute->estimated_duration_minutes,
+                'route_geometry' => $transportRoute->route_geometry,
+                'permitted_cargo_type' => $transportRoute->permitted_cargo_type,
+                'status' => $transportRoute->status,
+                'vehicle' => $transportRoute->vehicle ? [
+                    'plate' => $transportRoute->vehicle->plate,
+                    'vehicle_type' => $transportRoute->vehicle->vehicle_type,
+                    'capacity_kg' => (float) $transportRoute->vehicle->capacity_kg,
+                ] : null,
+                'transporter' => $transportRoute->transporter?->user ? [
+                    'name' => $transportRoute->transporter->user->name,
+                ] : null,
+            ],
+        ]);
+    }
+
     public function store(StoreTransportRouteRequest $request): RedirectResponse
     {
         $transporter = $request->user()->transporterProfile;

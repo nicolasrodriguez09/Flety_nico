@@ -1,6 +1,6 @@
 import RouteMap from '@/Components/RouteMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 const statusLabels = {
@@ -1261,29 +1261,11 @@ function TransporterView({
     );
 }
 
-function ProducerView({
-    availableRoutes,
-    routeFilters = {},
-    myRequests,
-    confirmedServices,
-}) {
-    const requestForm = useForm({
-        transport_route_id: availableRoutes[0]?.id ?? '',
-        cargo_weight_kg: '',
-        product_type: '',
-        delivery_destination: '',
-        estimated_cost: '',
-    });
+function ProducerView({ availableRoutes, routeFilters = {} }) {
     const [searchFilters, setSearchFilters] = useState({
         origin: routeFilters.origin ?? '',
         destination: routeFilters.destination ?? '',
     });
-    const mappableAvailableRoutes = availableRoutes.filter(hasRouteCoordinates);
-    const selectedRoute = availableRoutes.find(
-        (transportRoute) =>
-            String(transportRoute.id) ===
-            String(requestForm.data.transport_route_id),
-    );
     const hasActiveSearch =
         Boolean(routeFilters.origin) || Boolean(routeFilters.destination);
 
@@ -1323,24 +1305,6 @@ function ProducerView({
 
     return (
         <>
-            <section className={cardClassName()}>
-                <SectionTitle
-                    eyebrow="Servicios"
-                    title="Servicios confirmados y contacto"
-                    description="Los datos del transportista solo aparecen cuando la solicitud es aceptada. Desde esta confirmacion puedes llamar o abrir WhatsApp en un clic."
-                />
-
-                <div className="mt-6 grid gap-4">
-                    {confirmedServices.length ? (
-                        confirmedServices.map((service) => (
-                            <ServiceCard key={service.id} service={service} />
-                        ))
-                    ) : (
-                        <EmptyState message="Todavia no tienes servicios confirmados." />
-                    )}
-                </div>
-            </section>
-
             <section className={cardClassName()}>
                 <SectionTitle
                     eyebrow="Busqueda"
@@ -1422,58 +1386,10 @@ function ProducerView({
             </section>
 
             <section className={cardClassName()}>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <SectionTitle
-                        eyebrow="Mapa"
-                        title="Rutas publicadas"
-                        description="Visualiza las rutas disponibles con puntos de salida y llegada registrados por transportistas aprobados."
-                    />
-
-                    {selectedRoute ? (
-                        <div className="rounded-3xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm text-slate-700 lg:max-w-sm">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                                Ruta seleccionada
-                            </p>
-                            <p className="mt-2 font-semibold text-slate-900">
-                                {selectedRoute.origin} {'->'}{' '}
-                                {selectedRoute.destination}
-                            </p>
-                            <p className="mt-1">
-                                Salida {formatDate(selectedRoute.departure_at)}
-                            </p>
-                        </div>
-                    ) : null}
-                </div>
-
-                <div className="mt-6">
-                    {mappableAvailableRoutes.length ? (
-                        <RouteMap
-                            routes={
-                                selectedRoute && hasRouteCoordinates(selectedRoute)
-                                    ? [
-                                        selectedRoute,
-                                        ...mappableAvailableRoutes.filter(
-                                            (transportRoute) =>
-                                                transportRoute.id !==
-                                                selectedRoute.id,
-                                        ),
-                                    ]
-                                    : mappableAvailableRoutes
-                            }
-                            height="440px"
-                        />
-                    ) : (
-                        <EmptyState message="No hay rutas publicadas con puntos de mapa en este momento." />
-                    )}
-                </div>
-            </section>
-
-            <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-                <article className={cardClassName()}>
                     <SectionTitle
                         eyebrow="Rutas disponibles"
-                        title="Buscar rutas publicadas"
-                        description="Solo ves rutas futuras de transportistas aprobados. Antes de la aceptacion se protege la privacidad del contacto."
+                        title="Resultados de busqueda"
+                        description="Revisa una vista previa de cada ruta. Para enviar tu carga, abre el detalle de la ruta seleccionada."
                     />
 
                     <div className="mt-6 grid gap-4">
@@ -1531,257 +1447,33 @@ function ProducerView({
                                                 : 'duracion pendiente'}
                                         </p>
                                     ) : null}
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            requestForm.setData(
-                                                'transport_route_id',
-                                                transportRoute.id,
-                                            )
-                                        }
-                                    className="interactive-lift mt-4 inline-flex rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+                                    <div className="mt-4 overflow-hidden rounded-2xl border border-emerald-100 bg-white p-2">
+                                        {hasRouteCoordinates(transportRoute) ? (
+                                            <RouteMap
+                                                routes={[transportRoute]}
+                                                height="240px"
+                                            />
+                                        ) : (
+                                            <div className="flex min-h-[210px] items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 text-center text-sm text-slate-500">
+                                                Esta ruta aun no tiene puntos de mapa registrados.
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Link
+                                        href={route(
+                                            'producer.routes.show',
+                                            transportRoute.id,
+                                        )}
+                                        className="interactive-lift mt-4 inline-flex rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
                                     >
-                                        Ver en mapa y solicitar
-                                    </button>
+                                        Solicitar carga
+                                    </Link>
                                 </article>
                             ))
                         ) : (
                             <EmptyState message="No hay rutas publicadas disponibles en este momento." />
                         )}
                     </div>
-                </article>
-
-                <article className={cardClassName()}>
-                    <SectionTitle
-                        eyebrow="Solicitud"
-                        title="Registrar carga"
-                        description="Crea una solicitud sobre una ruta publicada. El telefono del transportista solo se habilita despues de la aceptacion."
-                    />
-
-                    <form
-                        className="mt-6 space-y-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            requestForm.post(
-                                route('producer.transport-requests.store'),
-                                {
-                                    preserveScroll: true,
-                                    onSuccess: () =>
-                                        requestForm.reset(
-                                            'cargo_weight_kg',
-                                            'product_type',
-                                            'delivery_destination',
-                                            'estimated_cost',
-                                        ),
-                                },
-                            );
-                        }}
-                    >
-                        <div>
-                            <label
-                                htmlFor="transport_route_id"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Ruta
-                            </label>
-                            <select
-                                id="transport_route_id"
-                                value={requestForm.data.transport_route_id}
-                                onChange={(event) =>
-                                    requestForm.setData(
-                                        'transport_route_id',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                            >
-                                <option value="">Selecciona una ruta</option>
-                                {availableRoutes.map((transportRoute) => (
-                                    <option
-                                        key={transportRoute.id}
-                                        value={transportRoute.id}
-                                    >
-                                        {transportRoute.origin} {'->'}{' '}
-                                        {transportRoute.destination} -{' '}
-                                        {formatDate(transportRoute.departure_at)}
-                                    </option>
-                                ))}
-                            </select>
-                            <FieldError
-                                message={requestForm.errors.transport_route_id}
-                            />
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label
-                                    htmlFor="cargo_weight_kg"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    Peso de la carga
-                                </label>
-                                <input
-                                    id="cargo_weight_kg"
-                                    type="number"
-                                    min="1"
-                                    step="0.01"
-                                    value={requestForm.data.cargo_weight_kg}
-                                    onChange={(event) =>
-                                        requestForm.setData(
-                                            'cargo_weight_kg',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                />
-                                <FieldError
-                                    message={requestForm.errors.cargo_weight_kg}
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="estimated_cost"
-                                    className="text-sm font-medium text-slate-700"
-                                >
-                                    Costo estimado
-                                </label>
-                                <input
-                                    id="estimated_cost"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={requestForm.data.estimated_cost}
-                                    onChange={(event) =>
-                                        requestForm.setData(
-                                            'estimated_cost',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                />
-                                <FieldError
-                                    message={requestForm.errors.estimated_cost}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="product_type"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Tipo de producto
-                            </label>
-                            <input
-                                id="product_type"
-                                value={requestForm.data.product_type}
-                                onChange={(event) =>
-                                    requestForm.setData(
-                                        'product_type',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                            />
-                            <FieldError
-                                message={requestForm.errors.product_type}
-                            />
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="delivery_destination"
-                                className="text-sm font-medium text-slate-700"
-                            >
-                                Destino de entrega
-                            </label>
-                            <input
-                                id="delivery_destination"
-                                value={requestForm.data.delivery_destination}
-                                onChange={(event) =>
-                                    requestForm.setData(
-                                        'delivery_destination',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                            />
-                            <FieldError
-                                message={
-                                    requestForm.errors.delivery_destination
-                                }
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={
-                                requestForm.processing || !availableRoutes.length
-                            }
-                            className="interactive-lift inline-flex rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
-                        >
-                            Crear solicitud
-                        </button>
-                    </form>
-                </article>
-            </section>
-
-            <section className={cardClassName()}>
-                <SectionTitle
-                    eyebrow="Seguimiento"
-                    title="Mis solicitudes"
-                    description="Consulta el estado de tus solicitudes. El contacto solo se revela cuando el servicio queda confirmado."
-                />
-
-                <div className="mt-6 grid gap-4">
-                    {myRequests.length ? (
-                        myRequests.map((transportRequest) => (
-                            <article
-                                key={transportRequest.id}
-                                className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
-                            >
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <h4 className="text-lg font-semibold text-slate-900">
-                                        {transportRequest.route?.origin} {'->'}{' '}
-                                        {transportRequest.route?.destination}
-                                    </h4>
-                                    <StatusBadge
-                                        status={transportRequest.status}
-                                    />
-                                </div>
-                                <p className="mt-3 text-sm text-slate-600">
-                                    Solicitado el{' '}
-                                    {formatDate(transportRequest.requested_at)}
-                                </p>
-                                <p className="mt-1 text-sm text-slate-600">
-                                    Producto: {transportRequest.product_type} ·
-                                    Peso: {transportRequest.cargo_weight_kg} kg
-                                </p>
-                                <p className="mt-1 text-sm text-slate-600">
-                                    Entrega:{' '}
-                                    {
-                                        transportRequest.delivery_destination
-                                    }
-                                </p>
-                                <p className="mt-1 text-sm text-slate-600">
-                                    Transportista:{' '}
-                                    {transportRequest.route?.transporter?.name}
-                                </p>
-                                {transportRequest.estimated_cost ? (
-                                    <p className="mt-1 text-sm text-slate-600">
-                                        Valor estimado:{' '}
-                                        {formatCurrency(
-                                            transportRequest.estimated_cost,
-                                        )}
-                                    </p>
-                                ) : null}
-                            </article>
-                        ))
-                    ) : (
-                        <EmptyState message="Todavia no has creado solicitudes." />
-                    )}
-                </div>
             </section>
         </>
     );

@@ -153,17 +153,27 @@ function DataList({ section }) {
                             </p>
                             {item.links?.length ? (
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                    {item.links.map((link) => (
-                                        <a
-                                            key={link.label}
-                                            href={link.href}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="rounded-xl border border-[#dce6d8] px-3 py-2 text-xs font-semibold text-[#3f6f4b] transition hover:bg-[#f4f8ef]"
-                                        >
-                                            {link.label}
-                                        </a>
-                                    ))}
+                                    {item.links.map((link) =>
+                                        link.inertia ? (
+                                            <Link
+                                                key={link.label}
+                                                href={link.href}
+                                                className="rounded-xl border border-[#dce6d8] px-3 py-2 text-xs font-semibold text-[#3f6f4b] transition hover:bg-[#f4f8ef]"
+                                            >
+                                                {link.label}
+                                            </Link>
+                                        ) : (
+                                            <a
+                                                key={link.label}
+                                                href={link.href}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="rounded-xl border border-[#dce6d8] px-3 py-2 text-xs font-semibold text-[#3f6f4b] transition hover:bg-[#f4f8ef]"
+                                            >
+                                                {link.label}
+                                            </a>
+                                        ),
+                                    )}
                                 </div>
                             ) : null}
                             {item.actions?.length ? (

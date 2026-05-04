@@ -395,6 +395,38 @@ class TransportRouteManagementTest extends TestCase
         $response->assertDontSee($hiddenByDestination->destination);
     }
 
+    public function test_producer_can_view_a_published_route_detail(): void
+    {
+        $route = $this->createPublishedRoute([
+            'origin' => 'Sogamoso',
+            'destination' => 'Bogota Norte',
+            'origin_lat' => 5.7143,
+            'origin_lng' => -72.9339,
+            'destination_lat' => 4.711,
+            'destination_lng' => -74.0721,
+        ], 'producer-route-detail@example.com');
+        $producer = $this->createProducerUser('route-detail-viewer@example.com');
+
+        $response = $this->actingAs($producer)
+            ->get(route('producer.routes.show', $route));
+
+        $response->assertOk();
+        $response->assertSee('Sogamoso');
+        $response->assertSee('Bogota Norte');
+    }
+
+    public function test_producer_cannot_view_unavailable_route_detail(): void
+    {
+        $route = $this->createPublishedRoute([
+            'departure_at' => Carbon::now()->subDay(),
+        ], 'producer-route-hidden-detail@example.com');
+        $producer = $this->createProducerUser('route-hidden-detail-viewer@example.com');
+
+        $this->actingAs($producer)
+            ->get(route('producer.routes.show', $route))
+            ->assertNotFound();
+    }
+
     public function test_producer_cannot_see_transporter_contact_before_request_is_accepted(): void
     {
         $route = $this->createPublishedRoute();

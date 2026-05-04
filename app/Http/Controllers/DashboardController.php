@@ -152,6 +152,17 @@ class DashboardController extends Controller
                             ->take(4)
                             ->map(fn (TransportRoute $route) => [
                                 'title' => $route->origin.' -> '.$route->destination,
+                                'mapRoute' => [
+                                    'id' => $route->id,
+                                    'origin' => $route->origin,
+                                    'origin_lat' => $route->origin_lat !== null ? (float) $route->origin_lat : null,
+                                    'origin_lng' => $route->origin_lng !== null ? (float) $route->origin_lng : null,
+                                    'destination' => $route->destination,
+                                    'destination_lat' => $route->destination_lat !== null ? (float) $route->destination_lat : null,
+                                    'destination_lng' => $route->destination_lng !== null ? (float) $route->destination_lng : null,
+                                    'available_capacity_kg' => (float) $route->available_capacity_kg,
+                                    'route_geometry' => $route->route_geometry,
+                                ],
                                 'meta' => $this->formatDateTime($route->departure_at).' · '.$this->humanizeStatus($route->status),
                             ])
                             ->values(),
@@ -298,6 +309,24 @@ class DashboardController extends Controller
                         'items' => $availableRoutes
                             ->map(fn (TransportRoute $route) => [
                                 'title' => $route->origin.' -> '.$route->destination,
+                                'links' => [
+                                    [
+                                        'label' => 'Ver ruta',
+                                        'href' => route('producer.routes.show', $route),
+                                        'inertia' => true,
+                                    ],
+                                ],
+                                'mapRoute' => [
+                                    'id' => $route->id,
+                                    'origin' => $route->origin,
+                                    'origin_lat' => $route->origin_lat !== null ? (float) $route->origin_lat : null,
+                                    'origin_lng' => $route->origin_lng !== null ? (float) $route->origin_lng : null,
+                                    'destination' => $route->destination,
+                                    'destination_lat' => $route->destination_lat !== null ? (float) $route->destination_lat : null,
+                                    'destination_lng' => $route->destination_lng !== null ? (float) $route->destination_lng : null,
+                                    'available_capacity_kg' => (float) $route->available_capacity_kg,
+                                    'route_geometry' => $route->route_geometry,
+                                ],
                                 'meta' => $this->formatDateTime($route->departure_at).' · '.$this->formatKilograms($route->available_capacity_kg),
                             ])
                             ->values(),
