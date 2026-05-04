@@ -26,6 +26,22 @@ function formatDate(value) {
     }).format(new Date(value));
 }
 
+function toDateTimeLocal(value) {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+
+    return offsetDate.toISOString().slice(0, 16);
+}
+
 function formatCurrency(value) {
     if (value === null || value === undefined || value === '') {
         return 'Sin definir';
@@ -566,6 +582,356 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
     );
 }
 
+function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
+    const currentVehicleId = transportRoute.vehicle?.id ?? '';
+    const baseVehicleOptions = vehicles.filter(
+        (vehicle) =>
+            vehicle.status === 'available' ||
+            String(vehicle.id) === String(currentVehicleId),
+    );
+    const hasCurrentVehicle = baseVehicleOptions.some(
+        (vehicle) => String(vehicle.id) === String(currentVehicleId),
+    );
+    const vehicleOptions =
+        transportRoute.vehicle?.id && !hasCurrentVehicle
+            ? [
+                  {
+                      id: transportRoute.vehicle.id,
+                      plate: transportRoute.vehicle.plate,
+                      vehicle_type: transportRoute.vehicle.vehicle_type,
+                      capacity_kg: transportRoute.vehicle.capacity_kg,
+                      status: 'available',
+                  },
+                  ...baseVehicleOptions,
+              ]
+            : baseVehicleOptions;
+
+    const editForm = useForm({
+        vehicle_id: currentVehicleId,
+        origin: transportRoute.origin ?? '',
+        origin_lat: transportRoute.origin_lat ?? '',
+        origin_lng: transportRoute.origin_lng ?? '',
+        destination: transportRoute.destination ?? '',
+        destination_lat: transportRoute.destination_lat ?? '',
+        destination_lng: transportRoute.destination_lng ?? '',
+        departure_at: toDateTimeLocal(transportRoute.departure_at),
+        available_capacity_kg: transportRoute.available_capacity_kg ?? '',
+        permitted_cargo_type: transportRoute.permitted_cargo_type ?? '',
+    });
+    const [selectionMode, setSelectionMode] = useState('origin');
+
+    const selectedVehicle = vehicleOptions.find(
+        (vehicle) => String(vehicle.id) === String(editForm.data.vehicle_id),
+    );
+    const canSubmit =
+        editForm.data.vehicle_id &&
+        editForm.data.origin.trim() &&
+        editForm.data.destination.trim() &&
+        editForm.data.departure_at &&
+        Number(editForm.data.available_capacity_kg) > 0 &&
+        (!selectedVehicle ||
+            Number(editForm.data.available_capacity_kg) <=
+                Number(selectedVehicle.capacity_kg)) &&
+        editForm.data.permitted_cargo_type.trim();
+
+    const originPoint =
+        editForm.data.origin_lat && editForm.data.origin_lng
+            ? {
+                  lat: Number(editForm.data.origin_lat),
+                  lng: Number(editForm.data.origin_lng),
+              }
+            : null;
+    const destinationPoint =
+        editForm.data.destination_lat && editForm.data.destination_lng
+            ? {
+                  lat: Number(editForm.data.destination_lat),
+                  lng: Number(editForm.data.destination_lng),
+              }
+            : null;
+
+    return (
+        <form
+            className="mt-5 space-y-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
+            onSubmit={(event) => {
+                event.preventDefault();
+
+                editForm.patch(
+                    route('transporter.routes.update', transportRoute.id),
+                    {
+                        preserveScroll: true,
+                        onSuccess,
+                    },
+                );
+            }}
+        >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
+                        Editar ruta
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                        Actualiza origen, destino, fecha y capacidad disponible.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="inline-flex justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                    Cancelar
+                </button>
+            </div>
+
+            <div>
+                <label
+                    htmlFor={`edit_vehicle_id_${transportRoute.id}`}
+                    className="text-sm font-medium text-slate-700"
+                >
+                    Vehiculo
+                </label>
+                <select
+                    id={`edit_vehicle_id_${transportRoute.id}`}
+                    required
+                    value={editForm.data.vehicle_id}
+                    onChange={(event) =>
+                        editForm.setData('vehicle_id', event.target.value)
+                    }
+                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                >
+                    <option value="">Selecciona un vehiculo</option>
+                    {vehicleOptions.map((vehicle) => (
+                        <option key={vehicle.id} value={vehicle.id}>
+                            {vehicle.plate} - {vehicle.vehicle_type} -{' '}
+                            {vehicle.capacity_kg} kg
+                        </option>
+                    ))}
+                </select>
+                {selectedVehicle ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                        Capacidad maxima del vehiculo:{' '}
+                        {selectedVehicle.capacity_kg} kg
+                    </p>
+                ) : null}
+                <FieldError message={editForm.errors.vehicle_id} />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label
+                        htmlFor={`edit_origin_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Origen
+                    </label>
+                    <input
+                        id={`edit_origin_${transportRoute.id}`}
+                        required
+                        value={editForm.data.origin}
+                        onChange={(event) =>
+                            editForm.setData('origin', event.target.value)
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.origin} />
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`edit_destination_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Destino
+                    </label>
+                    <input
+                        id={`edit_destination_${transportRoute.id}`}
+                        required
+                        value={editForm.data.destination}
+                        onChange={(event) =>
+                            editForm.setData('destination', event.target.value)
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.destination} />
+                </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label
+                        htmlFor={`edit_departure_at_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Fecha y hora de salida
+                    </label>
+                    <input
+                        id={`edit_departure_at_${transportRoute.id}`}
+                        type="datetime-local"
+                        required
+                        value={editForm.data.departure_at}
+                        onChange={(event) =>
+                            editForm.setData('departure_at', event.target.value)
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.departure_at} />
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`edit_available_capacity_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Capacidad disponible
+                    </label>
+                    <input
+                        id={`edit_available_capacity_${transportRoute.id}`}
+                        type="number"
+                        required
+                        inputMode="decimal"
+                        min="1"
+                        max={selectedVehicle?.capacity_kg}
+                        step="0.01"
+                        value={editForm.data.available_capacity_kg}
+                        onChange={(event) =>
+                            editForm.setData(
+                                'available_capacity_kg',
+                                event.target.value,
+                            )
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.available_capacity_kg} />
+                </div>
+            </div>
+
+            <div>
+                <label
+                    htmlFor={`edit_permitted_cargo_type_${transportRoute.id}`}
+                    className="text-sm font-medium text-slate-700"
+                >
+                    Tipo de carga permitida
+                </label>
+                <input
+                    id={`edit_permitted_cargo_type_${transportRoute.id}`}
+                    required
+                    value={editForm.data.permitted_cargo_type}
+                    onChange={(event) =>
+                        editForm.setData(
+                            'permitted_cargo_type',
+                            event.target.value,
+                        )
+                    }
+                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                />
+                <FieldError message={editForm.errors.permitted_cargo_type} />
+            </div>
+
+            <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                            Puntos de mapa
+                        </p>
+                        <p className="mt-1 text-xs text-slate-600">
+                            Puedes conservar los puntos actuales o marcarlos de nuevo.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setSelectionMode('origin')}
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+                                selectionMode === 'origin'
+                                    ? 'bg-emerald-700 text-white'
+                                    : 'bg-white text-slate-700'
+                            }`}
+                        >
+                            Marcar salida
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectionMode('destination')}
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+                                selectionMode === 'destination'
+                                    ? 'bg-emerald-700 text-white'
+                                    : 'bg-white text-slate-700'
+                            }`}
+                        >
+                            Marcar llegada
+                        </button>
+                    </div>
+                </div>
+
+                <RouteMap
+                    selectable
+                    selectionMode={selectionMode}
+                    originPoint={originPoint}
+                    destinationPoint={destinationPoint}
+                    height="300px"
+                    onSelectPoint={(point) => {
+                        if (point.type === 'origin') {
+                            editForm.setData({
+                                ...editForm.data,
+                                origin_lat: point.lat,
+                                origin_lng: point.lng,
+                            });
+                            setSelectionMode('destination');
+                        }
+
+                        if (point.type === 'destination') {
+                            editForm.setData({
+                                ...editForm.data,
+                                destination_lat: point.lat,
+                                destination_lng: point.lng,
+                            });
+                        }
+                    }}
+                />
+
+                <div className="mt-3 grid gap-3 text-xs text-slate-600 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                        <strong>Salida:</strong>{' '}
+                        {originPoint
+                            ? `${editForm.data.origin_lat}, ${editForm.data.origin_lng}`
+                            : 'Sin seleccionar'}
+                    </div>
+
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                        <strong>Llegada:</strong>{' '}
+                        {destinationPoint
+                            ? `${editForm.data.destination_lat}, ${editForm.data.destination_lng}`
+                            : 'Sin seleccionar'}
+                    </div>
+                </div>
+
+                <FieldError message={editForm.errors.origin_lat} />
+                <FieldError message={editForm.errors.destination_lat} />
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                    type="submit"
+                    disabled={!canSubmit || editForm.processing}
+                    className="inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {editForm.processing ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="inline-flex justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                    Cerrar edicion
+                </button>
+            </div>
+        </form>
+    );
+}
+
 function TransporterView({
     transporterProfile,
     vehicles,
@@ -574,6 +940,26 @@ function TransporterView({
     confirmedServices,
 }) {
     const requestDecisionForm = useForm({});
+    const [editingRouteId, setEditingRouteId] = useState(null);
+
+    const deleteRoute = (transportRoute) => {
+        if (
+            !window.confirm(
+                `Eliminar definitivamente la ruta ${transportRoute.origin} -> ${transportRoute.destination}?`,
+            )
+        ) {
+            return;
+        }
+
+        router.delete(route('transporter.routes.destroy', transportRoute.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (editingRouteId === transportRoute.id) {
+                    setEditingRouteId(null);
+                }
+            },
+        });
+    };
 
     return (
         <>
@@ -782,7 +1168,7 @@ function TransporterView({
                         myRoutes.map((transportRoute) => (
                             <article
                                 key={transportRoute.id}
-                                className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                                className="interactive-lift rounded-3xl border border-slate-200 bg-slate-50 p-5 transition"
                             >
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                     <div>
@@ -820,8 +1206,50 @@ function TransporterView({
                                                 transportRoute.transport_requests_count
                                             }
                                         </p>
+                                        <p className="mt-1 text-sm text-slate-600">
+                                            Carga permitida:{' '}
+                                            {transportRoute.permitted_cargo_type}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setEditingRouteId(
+                                                    editingRouteId ===
+                                                        transportRoute.id
+                                                        ? null
+                                                        : transportRoute.id,
+                                                )
+                                            }
+                                            className="inline-flex justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                                        >
+                                            {editingRouteId === transportRoute.id
+                                                ? 'Ocultar'
+                                                : 'Editar'}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                deleteRoute(transportRoute)
+                                            }
+                                            className="inline-flex justify-center rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                                        >
+                                            Eliminar
+                                        </button>
                                     </div>
                                 </div>
+
+                                {editingRouteId === transportRoute.id ? (
+                                    <EditRouteForm
+                                        transportRoute={transportRoute}
+                                        vehicles={vehicles}
+                                        onCancel={() => setEditingRouteId(null)}
+                                        onSuccess={() => setEditingRouteId(null)}
+                                    />
+                                ) : null}
                             </article>
                         ))
                     ) : (

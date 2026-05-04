@@ -169,6 +169,87 @@ class TransportRouteManagementTest extends TestCase
         ]);
     }
 
+    public function test_route_owner_can_update_a_published_route(): void
+    {
+        $route = $this->createPublishedRoute([
+            'origin_lat' => 5.8267,
+            'origin_lng' => -73.0339,
+            'destination_lat' => 4.711,
+            'destination_lng' => -74.0721,
+        ], 'update-route@example.com');
+        $route->load('transporter.user');
+
+        $this->actingAs($route->transporter->user)
+            ->patch(route('transporter.routes.update', $route), [
+                'vehicle_id' => $route->vehicle_id,
+                'origin' => 'Tunja Centro',
+                'origin_lat' => 5.5353,
+                'origin_lng' => -73.3678,
+                'destination' => 'Bogota Corabastos',
+                'destination_lat' => 4.6291,
+                'destination_lng' => -74.1715,
+                'departure_at' => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'available_capacity_kg' => 700,
+                'permitted_cargo_type' => 'Papa criolla',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('transport_routes', [
+            'id' => $route->id,
+            'origin' => 'Tunja Centro',
+            'destination' => 'Bogota Corabastos',
+            'available_capacity_kg' => 700,
+            'permitted_cargo_type' => 'Papa criolla',
+            'status' => TransportRoute::STATUS_PUBLISHED,
+        ]);
+
+        $this->assertNotNull($route->fresh()->distance_km);
+    }
+
+    public function test_route_owner_can_delete_a_published_route(): void
+    {
+        $route = $this->createPublishedRoute([], 'delete-route@example.com');
+        $route->load('transporter.user');
+
+        $this->actingAs($route->transporter->user)
+            ->delete(route('transporter.routes.destroy', $route))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('transport_routes', [
+            'id' => $route->id,
+        ]);
+    }
+
+    public function test_transporter_cannot_update_or_delete_another_transporters_route(): void
+    {
+        $route = $this->createPublishedRoute([], 'route-owner@example.com');
+        $otherTransporter = $this->createTransporterUser(
+            Transporter::STATUS_APPROVED,
+            'blocked-route-editor@example.com',
+        );
+
+        $this->actingAs($otherTransporter)
+            ->patch(route('transporter.routes.update', $route), [
+                'vehicle_id' => $route->vehicle_id,
+                'origin' => 'Origen bloqueado',
+                'destination' => 'Destino bloqueado',
+                'departure_at' => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'available_capacity_kg' => 700,
+                'permitted_cargo_type' => 'Cafe',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($otherTransporter)
+            ->delete(route('transporter.routes.destroy', $route))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('transport_routes', [
+            'id' => $route->id,
+            'origin' => 'Duitama',
+            'destination' => 'Bogota',
+        ]);
+    }
+
     public function test_pending_transporter_cannot_publish_routes(): void
     {
         $user = $this->createTransporterUser(Transporter::STATUS_PENDING);
