@@ -90,6 +90,52 @@
         }
     }
 
+    @keyframes app-page-in {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 14px, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    @keyframes panel-rise {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 18px, 0) scale(0.985);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+    }
+
+    @keyframes drawer-in {
+        from {
+            opacity: 0;
+            transform: translate3d(-18px, 0, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    @keyframes overlay-in {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
     .animate-fade-up {
         animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
         will-change: transform, opacity;
@@ -124,6 +170,25 @@
         animation: glow-soft 5.5s ease-in-out infinite;
     }
 
+    .animate-app-page-in {
+        animation: app-page-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+    }
+
+    .animate-panel-rise {
+        animation: panel-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+    }
+
+    .animate-drawer-in {
+        animation: drawer-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: transform, opacity;
+    }
+
+    .animate-overlay-in {
+        animation: overlay-in 180ms ease-out both;
+    }
+
     .stagger-1 {
         animation-delay: 0.12s;
     }
@@ -156,6 +221,24 @@
         transform: translate3d(0, -2px, 0);
     }
 
+    .interactive-lift {
+        transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            border-color 180ms ease,
+            background-color 180ms ease,
+            color 180ms ease;
+        will-change: transform;
+    }
+
+    .interactive-lift:hover {
+        transform: translate3d(0, -2px, 0);
+    }
+
+    .interactive-lift:active {
+        transform: translate3d(0, 0, 0) scale(0.99);
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .animate-fade-up,
         .animate-fade-right,
@@ -169,7 +252,10 @@
 
         .hover-lift-soft,
         .hover-lift-soft:hover,
-        .hover-lift-soft:focus-visible {
+        .hover-lift-soft:focus-visible,
+        .interactive-lift,
+        .interactive-lift:hover,
+        .interactive-lift:active {
             transform: none !important;
             transition: none !important;
         }

@@ -70,44 +70,45 @@ export default function AuthenticatedLayout({ header, children }) {
     const [showingModuleMenu, setShowingModuleMenu] = useState(false);
 
     return (
-        <div className="min-h-screen bg-[linear-gradient(180deg,#f7f4ea_0%,#eef4ea_46%,#f6f8f2_100%)]">
-            <nav className="border-b border-emerald-100 bg-white">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[linear-gradient(180deg,#eef7ec_0%,#f6faf3_42%,#fbfcf8_100%)] text-[#203029]">
+            <nav className="sticky top-0 z-40 border-b border-[#dfe8dc] bg-white/96 shadow-[0_14px_34px_-30px_rgba(31,74,49,0.45)] backdrop-blur">
+                <div className="mx-auto max-w-[1540px] px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
                             <div className="flex items-center">
                                 <button
                                     type="button"
                                     onClick={() => setShowingModuleMenu(true)}
-                                    className="mr-3 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dfe7da] bg-white text-[#32473d] shadow-[0_16px_32px_-28px_rgba(0,0,0,0.38)] transition hover:border-[#cfdac8] hover:bg-[#fbfdf9] focus:outline-none"
+                                    className="interactive-lift mr-4 inline-flex h-12 items-center gap-3 rounded-2xl border border-[#cfe2ca] bg-[#f2f8ef] px-4 text-base font-semibold text-[#356b3f] shadow-[0_16px_34px_-28px_rgba(66,124,70,0.65)] hover:border-[#b8d5b1] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#9cc895]/50 sm:h-[3.25rem]"
                                     aria-label="Abrir modulos"
                                 >
                                     <svg
-                                        className="h-5 w-5"
+                                        className="h-6 w-6"
                                         viewBox="0 0 24 24"
                                         fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
                                         aria-hidden="true"
                                     >
                                         <path
-                                            d="M4 7H20"
+                                            d="M5 7H19"
                                             stroke="currentColor"
-                                            strokeWidth="2"
+                                            strokeWidth="1.9"
                                             strokeLinecap="round"
                                         />
                                         <path
-                                            d="M4 12H20"
+                                            d="M5 12H19"
                                             stroke="currentColor"
-                                            strokeWidth="2"
+                                            strokeWidth="1.9"
                                             strokeLinecap="round"
                                         />
                                         <path
-                                            d="M4 17H20"
+                                            d="M5 17H15"
                                             stroke="currentColor"
-                                            strokeWidth="2"
+                                            strokeWidth="1.9"
                                             strokeLinecap="round"
                                         />
                                     </svg>
+                                    <span className="hidden sm:inline">Menu</span>
                                 </button>
                             </div>
                             <div className="flex shrink-0 items-center">
@@ -126,19 +127,20 @@ export default function AuthenticatedLayout({ header, children }) {
                                 </Link>
                             </div>
 
-                            <div className="hidden items-center sm:ms-10 sm:flex">
+                            <div className="hidden items-center sm:ms-8 sm:flex">
                                 <button
                                     type="button"
                                     onClick={() => setShowingModuleMenu(true)}
-                                    className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                                    className="interactive-lift inline-flex items-center gap-2 rounded-xl border border-[#d8e8d4] bg-white px-4 py-2 text-sm font-semibold text-[#356b3f] transition hover:border-[#c7dcc2] hover:bg-[#f8fbf6]"
                                 >
+                                    <span className="h-2 w-2 rounded-full bg-[#427c46]" />
                                     Modulos
                                 </button>
                             </div>
                         </div>
 
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+                            <div className="rounded-full border border-[#d8e8d4] bg-[#f2f8ef] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#356b3f]">
                                 {user.role?.name ?? 'Usuario'}
                             </div>
                             <div className="relative ms-3">
@@ -147,7 +149,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         <span className="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                className="inline-flex items-center gap-2 rounded-2xl border border-[#dfe7da] bg-white px-4 py-2.5 text-sm font-semibold leading-4 text-[#32473d] shadow-[0_16px_32px_-26px_rgba(0,0,0,0.38)] transition duration-150 ease-in-out hover:border-[#cfdac8] hover:bg-[#fbfdf9] focus:outline-none"
+                                            className="interactive-lift inline-flex items-center gap-2 rounded-xl border border-[#dfe7da] bg-white px-4 py-2.5 text-sm font-semibold leading-4 text-[#32473d] transition duration-150 ease-in-out hover:border-[#cbdac7] hover:bg-[#f8fbf6] focus:outline-none"
                                             >
                                                 {user.name}
 
@@ -312,25 +314,30 @@ export default function AuthenticatedLayout({ header, children }) {
                 <div className="fixed inset-0 z-50">
                     <button
                         type="button"
-                        className="absolute inset-0 bg-slate-950/35"
+                        className="animate-overlay-in absolute inset-0 bg-[#203029]/35"
                         aria-label="Cerrar menu de modulos"
                         onClick={() => setShowingModuleMenu(false)}
                     />
-                    <aside className="absolute left-0 top-0 flex h-full w-[min(22rem,calc(100vw-2rem))] flex-col border-r border-emerald-100 bg-white shadow-[28px_0_70px_-44px_rgba(0,0,0,0.55)]">
-                        <div className="border-b border-emerald-100 px-5 py-5">
+                    <aside className="animate-drawer-in absolute left-0 top-0 flex h-full w-[min(23.5rem,calc(100vw-1.25rem))] flex-col border-r border-[#dfe8dc] bg-[#fbfcf8] shadow-[28px_0_70px_-48px_rgba(31,74,49,0.5)]">
+                        <div className="border-b border-[#dfe8dc] bg-white px-5 py-5">
                             <div className="flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.26em] text-emerald-700">
-                                        Flety
-                                    </p>
-                                    <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                                        Modulos
-                                    </h2>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d8e8d4] bg-[#f2f8ef]">
+                                        <ApplicationLogo className="h-7 w-auto fill-current text-[#427c46]" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
+                                            Flety
+                                        </p>
+                                        <h2 className="mt-1 text-xl font-semibold text-slate-900">
+                                            Menu operativo
+                                        </h2>
+                                    </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setShowingModuleMenu(false)}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+                                    className="interactive-lift inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#dfe8dc] bg-white text-[#5e7569] transition hover:bg-[#f8fbf6]"
                                     aria-label="Cerrar modulos"
                                 >
                                     <svg
@@ -355,12 +362,22 @@ export default function AuthenticatedLayout({ header, children }) {
                                     </svg>
                                 </button>
                             </div>
-                            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
-                                    {user.role?.name ?? 'Usuario'}
-                                </p>
-                                <p className="mt-1 text-sm font-medium text-slate-800">
-                                    {user.name}
+                            <div className="mt-5 rounded-2xl border border-[#d8e8d4] bg-[linear-gradient(180deg,#f2f8ef_0%,#ffffff_100%)] px-4 py-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#356b3f]">
+                                            {user.role?.name ?? 'Usuario'}
+                                        </p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-900">
+                                            {user.name}
+                                        </p>
+                                    </div>
+                                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#427c46]">
+                                        Activo
+                                    </span>
+                                </div>
+                                <p className="mt-3 text-xs leading-5 text-[#66746d]">
+                                    Accede rapidamente a las areas disponibles para tu rol.
                                 </p>
                             </div>
                         </div>
@@ -371,29 +388,57 @@ export default function AuthenticatedLayout({ header, children }) {
                                     key={module.href}
                                     href={module.href}
                                     onClick={() => setShowingModuleMenu(false)}
-                                    className={`block rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                                    className={`interactive-lift group flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                                         module.active
-                                            ? 'bg-emerald-700 text-white shadow-[0_18px_34px_-26px_rgba(4,120,87,0.9)]'
-                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50'
+                                            ? 'bg-[#427c46] text-white shadow-[0_18px_34px_-28px_rgba(66,124,70,0.65)]'
+                                            : 'border border-[#dfe8dc] bg-white text-[#42534a] hover:border-[#cbdac7] hover:bg-[#f8fbf6]'
                                     }`}
                                 >
-                                    {module.label}
+                                    <span className="inline-flex items-center gap-3">
+                                        <span
+                                            className={`h-2.5 w-2.5 rounded-full ${
+                                                module.active
+                                                    ? 'bg-white'
+                                                    : 'bg-[#9fbd99] group-hover:bg-[#427c46]'
+                                            }`}
+                                        />
+                                        {module.label}
+                                    </span>
+                                    <span
+                                        className={
+                                            module.active
+                                                ? 'text-white/75'
+                                                : 'text-[#9aa89f]'
+                                        }
+                                    >
+                                        {'>'}
+                                    </span>
                                 </Link>
                             ))}
                         </nav>
+
+                        <div className="border-t border-[#dfe8dc] bg-white px-4 py-4">
+                            <Link
+                                href={route('profile.edit')}
+                                onClick={() => setShowingModuleMenu(false)}
+                                className="interactive-lift block rounded-xl border border-[#dfe8dc] px-4 py-3 text-sm font-semibold text-[#42534a] transition hover:bg-[#f8fbf6]"
+                            >
+                                Configurar perfil
+                            </Link>
+                        </div>
                     </aside>
                 </div>
             ) : null}
 
             {header && (
-                <header className="border-b border-[#edf1ea] bg-white shadow-sm">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <header className="border-b border-[#dfe8dc] bg-white/96 shadow-[0_14px_34px_-30px_rgba(31,74,49,0.45)] backdrop-blur">
+                    <div className="mx-auto max-w-[1540px] px-4 py-5 sm:px-6 lg:px-8">
                         {header}
                     </div>
                 </header>
             )}
 
-            <main>{children}</main>
+            <main className="animate-app-page-in">{children}</main>
         </div>
     );
 }

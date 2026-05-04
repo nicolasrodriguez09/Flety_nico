@@ -1,6 +1,6 @@
 import RouteMap from '@/Components/RouteMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 const statusLabels = {
@@ -26,6 +26,22 @@ function formatDate(value) {
     }).format(new Date(value));
 }
 
+function toDateTimeLocal(value) {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+
+    return offsetDate.toISOString().slice(0, 16);
+}
+
 function formatCurrency(value) {
     if (value === null || value === undefined || value === '') {
         return 'Sin definir';
@@ -38,8 +54,17 @@ function formatCurrency(value) {
     }).format(Number(value));
 }
 
+function hasRouteCoordinates(route) {
+    return (
+        Number.isFinite(Number(route.origin_lat)) &&
+        Number.isFinite(Number(route.origin_lng)) &&
+        Number.isFinite(Number(route.destination_lat)) &&
+        Number.isFinite(Number(route.destination_lng))
+    );
+}
+
 function cardClassName(extra = '') {
-    return `rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-sm ${extra}`.trim();
+    return `animate-panel-rise rounded-2xl border border-[#dfe8dc] bg-white p-4 shadow-[0_18px_42px_-34px_rgba(31,74,49,0.35)] sm:p-6 ${extra}`.trim();
 }
 
 function StatusBadge({ status }) {
@@ -75,7 +100,7 @@ function FieldError({ message }) {
 function SectionTitle({ eyebrow, title, description }) {
     return (
         <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
                 {eyebrow}
             </p>
             <h3 className="text-2xl font-semibold text-slate-900">{title}</h3>
@@ -90,7 +115,7 @@ function SectionTitle({ eyebrow, title, description }) {
 
 function EmptyState({ message }) {
     return (
-        <div className="rounded-3xl border border-dashed border-slate-300 px-5 py-8 text-sm text-slate-500">
+        <div className="rounded-[1.3rem] border border-dashed border-slate-300 bg-slate-50/80 px-5 py-8 text-sm text-slate-500">
             {message}
         </div>
     );
@@ -100,12 +125,12 @@ function FlashMessages({ success, error }) {
     return (
         <>
             {success ? (
-                <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
+                <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
                     {success}
                 </section>
             ) : null}
             {error ? (
-                <section className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
+                <section className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
                     {error}
                 </section>
             ) : null}
@@ -441,7 +466,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('origin')}
-                                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                                     selectionMode === 'origin'
                                         ? 'bg-emerald-700 text-white'
                                         : 'bg-white text-slate-700'
@@ -453,7 +478,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('destination')}
-                                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                                     selectionMode === 'destination'
                                         ? 'bg-emerald-700 text-white'
                                         : 'bg-white text-slate-700'
@@ -557,6 +582,356 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
     );
 }
 
+function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
+    const currentVehicleId = transportRoute.vehicle?.id ?? '';
+    const baseVehicleOptions = vehicles.filter(
+        (vehicle) =>
+            vehicle.status === 'available' ||
+            String(vehicle.id) === String(currentVehicleId),
+    );
+    const hasCurrentVehicle = baseVehicleOptions.some(
+        (vehicle) => String(vehicle.id) === String(currentVehicleId),
+    );
+    const vehicleOptions =
+        transportRoute.vehicle?.id && !hasCurrentVehicle
+            ? [
+                  {
+                      id: transportRoute.vehicle.id,
+                      plate: transportRoute.vehicle.plate,
+                      vehicle_type: transportRoute.vehicle.vehicle_type,
+                      capacity_kg: transportRoute.vehicle.capacity_kg,
+                      status: 'available',
+                  },
+                  ...baseVehicleOptions,
+              ]
+            : baseVehicleOptions;
+
+    const editForm = useForm({
+        vehicle_id: currentVehicleId,
+        origin: transportRoute.origin ?? '',
+        origin_lat: transportRoute.origin_lat ?? '',
+        origin_lng: transportRoute.origin_lng ?? '',
+        destination: transportRoute.destination ?? '',
+        destination_lat: transportRoute.destination_lat ?? '',
+        destination_lng: transportRoute.destination_lng ?? '',
+        departure_at: toDateTimeLocal(transportRoute.departure_at),
+        available_capacity_kg: transportRoute.available_capacity_kg ?? '',
+        permitted_cargo_type: transportRoute.permitted_cargo_type ?? '',
+    });
+    const [selectionMode, setSelectionMode] = useState('origin');
+
+    const selectedVehicle = vehicleOptions.find(
+        (vehicle) => String(vehicle.id) === String(editForm.data.vehicle_id),
+    );
+    const canSubmit =
+        editForm.data.vehicle_id &&
+        editForm.data.origin.trim() &&
+        editForm.data.destination.trim() &&
+        editForm.data.departure_at &&
+        Number(editForm.data.available_capacity_kg) > 0 &&
+        (!selectedVehicle ||
+            Number(editForm.data.available_capacity_kg) <=
+                Number(selectedVehicle.capacity_kg)) &&
+        editForm.data.permitted_cargo_type.trim();
+
+    const originPoint =
+        editForm.data.origin_lat && editForm.data.origin_lng
+            ? {
+                  lat: Number(editForm.data.origin_lat),
+                  lng: Number(editForm.data.origin_lng),
+              }
+            : null;
+    const destinationPoint =
+        editForm.data.destination_lat && editForm.data.destination_lng
+            ? {
+                  lat: Number(editForm.data.destination_lat),
+                  lng: Number(editForm.data.destination_lng),
+              }
+            : null;
+
+    return (
+        <form
+            className="mt-5 space-y-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
+            onSubmit={(event) => {
+                event.preventDefault();
+
+                editForm.patch(
+                    route('transporter.routes.update', transportRoute.id),
+                    {
+                        preserveScroll: true,
+                        onSuccess,
+                    },
+                );
+            }}
+        >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
+                        Editar ruta
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                        Actualiza origen, destino, fecha y capacidad disponible.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="inline-flex justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                    Cancelar
+                </button>
+            </div>
+
+            <div>
+                <label
+                    htmlFor={`edit_vehicle_id_${transportRoute.id}`}
+                    className="text-sm font-medium text-slate-700"
+                >
+                    Vehiculo
+                </label>
+                <select
+                    id={`edit_vehicle_id_${transportRoute.id}`}
+                    required
+                    value={editForm.data.vehicle_id}
+                    onChange={(event) =>
+                        editForm.setData('vehicle_id', event.target.value)
+                    }
+                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                >
+                    <option value="">Selecciona un vehiculo</option>
+                    {vehicleOptions.map((vehicle) => (
+                        <option key={vehicle.id} value={vehicle.id}>
+                            {vehicle.plate} - {vehicle.vehicle_type} -{' '}
+                            {vehicle.capacity_kg} kg
+                        </option>
+                    ))}
+                </select>
+                {selectedVehicle ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                        Capacidad maxima del vehiculo:{' '}
+                        {selectedVehicle.capacity_kg} kg
+                    </p>
+                ) : null}
+                <FieldError message={editForm.errors.vehicle_id} />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label
+                        htmlFor={`edit_origin_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Origen
+                    </label>
+                    <input
+                        id={`edit_origin_${transportRoute.id}`}
+                        required
+                        value={editForm.data.origin}
+                        onChange={(event) =>
+                            editForm.setData('origin', event.target.value)
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.origin} />
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`edit_destination_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Destino
+                    </label>
+                    <input
+                        id={`edit_destination_${transportRoute.id}`}
+                        required
+                        value={editForm.data.destination}
+                        onChange={(event) =>
+                            editForm.setData('destination', event.target.value)
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.destination} />
+                </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label
+                        htmlFor={`edit_departure_at_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Fecha y hora de salida
+                    </label>
+                    <input
+                        id={`edit_departure_at_${transportRoute.id}`}
+                        type="datetime-local"
+                        required
+                        value={editForm.data.departure_at}
+                        onChange={(event) =>
+                            editForm.setData('departure_at', event.target.value)
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.departure_at} />
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`edit_available_capacity_${transportRoute.id}`}
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Capacidad disponible
+                    </label>
+                    <input
+                        id={`edit_available_capacity_${transportRoute.id}`}
+                        type="number"
+                        required
+                        inputMode="decimal"
+                        min="1"
+                        max={selectedVehicle?.capacity_kg}
+                        step="0.01"
+                        value={editForm.data.available_capacity_kg}
+                        onChange={(event) =>
+                            editForm.setData(
+                                'available_capacity_kg',
+                                event.target.value,
+                            )
+                        }
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    />
+                    <FieldError message={editForm.errors.available_capacity_kg} />
+                </div>
+            </div>
+
+            <div>
+                <label
+                    htmlFor={`edit_permitted_cargo_type_${transportRoute.id}`}
+                    className="text-sm font-medium text-slate-700"
+                >
+                    Tipo de carga permitida
+                </label>
+                <input
+                    id={`edit_permitted_cargo_type_${transportRoute.id}`}
+                    required
+                    value={editForm.data.permitted_cargo_type}
+                    onChange={(event) =>
+                        editForm.setData(
+                            'permitted_cargo_type',
+                            event.target.value,
+                        )
+                    }
+                    className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                />
+                <FieldError message={editForm.errors.permitted_cargo_type} />
+            </div>
+
+            <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                            Puntos de mapa
+                        </p>
+                        <p className="mt-1 text-xs text-slate-600">
+                            Puedes conservar los puntos actuales o marcarlos de nuevo.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setSelectionMode('origin')}
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+                                selectionMode === 'origin'
+                                    ? 'bg-emerald-700 text-white'
+                                    : 'bg-white text-slate-700'
+                            }`}
+                        >
+                            Marcar salida
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSelectionMode('destination')}
+                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+                                selectionMode === 'destination'
+                                    ? 'bg-emerald-700 text-white'
+                                    : 'bg-white text-slate-700'
+                            }`}
+                        >
+                            Marcar llegada
+                        </button>
+                    </div>
+                </div>
+
+                <RouteMap
+                    selectable
+                    selectionMode={selectionMode}
+                    originPoint={originPoint}
+                    destinationPoint={destinationPoint}
+                    height="300px"
+                    onSelectPoint={(point) => {
+                        if (point.type === 'origin') {
+                            editForm.setData({
+                                ...editForm.data,
+                                origin_lat: point.lat,
+                                origin_lng: point.lng,
+                            });
+                            setSelectionMode('destination');
+                        }
+
+                        if (point.type === 'destination') {
+                            editForm.setData({
+                                ...editForm.data,
+                                destination_lat: point.lat,
+                                destination_lng: point.lng,
+                            });
+                        }
+                    }}
+                />
+
+                <div className="mt-3 grid gap-3 text-xs text-slate-600 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                        <strong>Salida:</strong>{' '}
+                        {originPoint
+                            ? `${editForm.data.origin_lat}, ${editForm.data.origin_lng}`
+                            : 'Sin seleccionar'}
+                    </div>
+
+                    <div className="rounded-2xl bg-white px-4 py-3">
+                        <strong>Llegada:</strong>{' '}
+                        {destinationPoint
+                            ? `${editForm.data.destination_lat}, ${editForm.data.destination_lng}`
+                            : 'Sin seleccionar'}
+                    </div>
+                </div>
+
+                <FieldError message={editForm.errors.origin_lat} />
+                <FieldError message={editForm.errors.destination_lat} />
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                    type="submit"
+                    disabled={!canSubmit || editForm.processing}
+                    className="inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {editForm.processing ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="inline-flex justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                    Cerrar edicion
+                </button>
+            </div>
+        </form>
+    );
+}
+
 function TransporterView({
     transporterProfile,
     vehicles,
@@ -565,6 +940,26 @@ function TransporterView({
     confirmedServices,
 }) {
     const requestDecisionForm = useForm({});
+    const [editingRouteId, setEditingRouteId] = useState(null);
+
+    const deleteRoute = (transportRoute) => {
+        if (
+            !window.confirm(
+                `Eliminar definitivamente la ruta ${transportRoute.origin} -> ${transportRoute.destination}?`,
+            )
+        ) {
+            return;
+        }
+
+        router.delete(route('transporter.routes.destroy', transportRoute.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (editingRouteId === transportRoute.id) {
+                    setEditingRouteId(null);
+                }
+            },
+        });
+    };
 
     return (
         <>
@@ -773,7 +1168,7 @@ function TransporterView({
                         myRoutes.map((transportRoute) => (
                             <article
                                 key={transportRoute.id}
-                                className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                                className="interactive-lift rounded-3xl border border-slate-200 bg-slate-50 p-5 transition"
                             >
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                     <div>
@@ -811,8 +1206,50 @@ function TransporterView({
                                                 transportRoute.transport_requests_count
                                             }
                                         </p>
+                                        <p className="mt-1 text-sm text-slate-600">
+                                            Carga permitida:{' '}
+                                            {transportRoute.permitted_cargo_type}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setEditingRouteId(
+                                                    editingRouteId ===
+                                                        transportRoute.id
+                                                        ? null
+                                                        : transportRoute.id,
+                                                )
+                                            }
+                                            className="inline-flex justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                                        >
+                                            {editingRouteId === transportRoute.id
+                                                ? 'Ocultar'
+                                                : 'Editar'}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                deleteRoute(transportRoute)
+                                            }
+                                            className="inline-flex justify-center rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                                        >
+                                            Eliminar
+                                        </button>
                                     </div>
                                 </div>
+
+                                {editingRouteId === transportRoute.id ? (
+                                    <EditRouteForm
+                                        transportRoute={transportRoute}
+                                        vehicles={vehicles}
+                                        onCancel={() => setEditingRouteId(null)}
+                                        onSuccess={() => setEditingRouteId(null)}
+                                    />
+                                ) : null}
                             </article>
                         ))
                     ) : (
@@ -824,7 +1261,12 @@ function TransporterView({
     );
 }
 
-function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
+function ProducerView({
+    availableRoutes,
+    routeFilters = {},
+    myRequests,
+    confirmedServices,
+}) {
     const requestForm = useForm({
         transport_route_id: availableRoutes[0]?.id ?? '',
         cargo_weight_kg: '',
@@ -832,6 +1274,52 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
         delivery_destination: '',
         estimated_cost: '',
     });
+    const [searchFilters, setSearchFilters] = useState({
+        origin: routeFilters.origin ?? '',
+        destination: routeFilters.destination ?? '',
+    });
+    const mappableAvailableRoutes = availableRoutes.filter(hasRouteCoordinates);
+    const selectedRoute = availableRoutes.find(
+        (transportRoute) =>
+            String(transportRoute.id) ===
+            String(requestForm.data.transport_route_id),
+    );
+    const hasActiveSearch =
+        Boolean(routeFilters.origin) || Boolean(routeFilters.destination);
+
+    const submitSearch = (event) => {
+        event.preventDefault();
+
+        router.get(
+            route('producer.routes.index'),
+            {
+                origin: searchFilters.origin.trim() || undefined,
+                destination: searchFilters.destination.trim() || undefined,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    };
+
+    const clearSearch = () => {
+        setSearchFilters({
+            origin: '',
+            destination: '',
+        });
+
+        router.get(
+            route('producer.routes.index'),
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    };
 
     return (
         <>
@@ -849,6 +1337,133 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
                         ))
                     ) : (
                         <EmptyState message="Todavia no tienes servicios confirmados." />
+                    )}
+                </div>
+            </section>
+
+            <section className={cardClassName()}>
+                <SectionTitle
+                    eyebrow="Busqueda"
+                    title="Buscar transportistas por ruta"
+                    description="Filtra las rutas activas por zona de salida y zona de llegada para encontrar opciones disponibles para tu carga."
+                />
+
+                <form
+                    className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto]"
+                    onSubmit={submitSearch}
+                >
+                    <div>
+                        <label
+                            htmlFor="search_origin"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Zona de salida
+                        </label>
+                        <input
+                            id="search_origin"
+                            value={searchFilters.origin}
+                            onChange={(event) =>
+                                setSearchFilters((current) => ({
+                                    ...current,
+                                    origin: event.target.value,
+                                }))
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. Tunja"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            htmlFor="search_destination"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Zona de llegada
+                        </label>
+                        <input
+                            id="search_destination"
+                            value={searchFilters.destination}
+                            onChange={(event) =>
+                                setSearchFilters((current) => ({
+                                    ...current,
+                                    destination: event.target.value,
+                                }))
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. Bogota"
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row lg:items-end">
+                        <button
+                            type="submit"
+                            className="interactive-lift inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                        >
+                            Buscar rutas
+                        </button>
+
+                        {hasActiveSearch ? (
+                            <button
+                                type="button"
+                                onClick={clearSearch}
+                                className="interactive-lift inline-flex justify-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                            >
+                                Limpiar
+                            </button>
+                        ) : null}
+                    </div>
+                </form>
+
+                <p className="mt-4 text-sm text-slate-600">
+                    {availableRoutes.length === 1
+                        ? '1 ruta disponible encontrada.'
+                        : `${availableRoutes.length} rutas disponibles encontradas.`}
+                </p>
+            </section>
+
+            <section className={cardClassName()}>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <SectionTitle
+                        eyebrow="Mapa"
+                        title="Rutas publicadas"
+                        description="Visualiza las rutas disponibles con puntos de salida y llegada registrados por transportistas aprobados."
+                    />
+
+                    {selectedRoute ? (
+                        <div className="rounded-3xl border border-emerald-100 bg-emerald-50 px-5 py-4 text-sm text-slate-700 lg:max-w-sm">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                                Ruta seleccionada
+                            </p>
+                            <p className="mt-2 font-semibold text-slate-900">
+                                {selectedRoute.origin} {'->'}{' '}
+                                {selectedRoute.destination}
+                            </p>
+                            <p className="mt-1">
+                                Salida {formatDate(selectedRoute.departure_at)}
+                            </p>
+                        </div>
+                    ) : null}
+                </div>
+
+                <div className="mt-6">
+                    {mappableAvailableRoutes.length ? (
+                        <RouteMap
+                            routes={
+                                selectedRoute && hasRouteCoordinates(selectedRoute)
+                                    ? [
+                                        selectedRoute,
+                                        ...mappableAvailableRoutes.filter(
+                                            (transportRoute) =>
+                                                transportRoute.id !==
+                                                selectedRoute.id,
+                                        ),
+                                    ]
+                                    : mappableAvailableRoutes
+                            }
+                            height="440px"
+                        />
+                    ) : (
+                        <EmptyState message="No hay rutas publicadas con puntos de mapa en este momento." />
                     )}
                 </div>
             </section>
@@ -903,6 +1518,31 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
                                             transportRoute.permitted_cargo_type
                                         }
                                     </p>
+                                    {transportRoute.distance_km ||
+                                    transportRoute.estimated_duration_minutes ? (
+                                        <p className="mt-1 text-sm text-slate-600">
+                                            Recorrido:{' '}
+                                            {transportRoute.distance_km
+                                                ? `${transportRoute.distance_km} km`
+                                                : 'Distancia pendiente'}
+                                            {' - '}
+                                            {transportRoute.estimated_duration_minutes
+                                                ? `${transportRoute.estimated_duration_minutes} min`
+                                                : 'duracion pendiente'}
+                                        </p>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            requestForm.setData(
+                                                'transport_route_id',
+                                                transportRoute.id,
+                                            )
+                                        }
+                                    className="interactive-lift mt-4 inline-flex rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+                                    >
+                                        Ver en mapa y solicitar
+                                    </button>
                                 </article>
                             ))
                         ) : (
@@ -1079,7 +1719,7 @@ function ProducerView({ availableRoutes, myRequests, confirmedServices }) {
                             disabled={
                                 requestForm.processing || !availableRoutes.length
                             }
-                            className="inline-flex rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
+                            className="interactive-lift inline-flex rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
                         >
                             Crear solicitud
                         </button>
@@ -1153,6 +1793,7 @@ export default function RoutesIndex({
     vehicles,
     myRoutes,
     availableRoutes,
+    routeFilters = {},
     myRequests,
     incomingRequests = [],
     confirmedServices = [],
@@ -1171,8 +1812,8 @@ export default function RoutesIndex({
         >
             <Head title="Rutas y solicitudes" />
 
-            <div className="py-10">
-                <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 lg:px-8">
+            <div className="bg-[linear-gradient(180deg,#eef7ec_0%,#f7faf4_100%)] py-5 sm:py-7">
+                <div className="mx-auto flex max-w-[1540px] flex-col gap-5 px-3 sm:px-5 lg:px-8">
                     <FlashMessages success={flash.success} error={flash.error} />
 
                     {role === 'transportista' ? (
@@ -1188,6 +1829,7 @@ export default function RoutesIndex({
                     {role === 'productor' ? (
                         <ProducerView
                             availableRoutes={availableRoutes}
+                            routeFilters={routeFilters}
                             myRequests={myRequests}
                             confirmedServices={confirmedServices}
                         />

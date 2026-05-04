@@ -206,6 +206,17 @@ class DashboardController extends Controller
                         'infoLabel' => 'Capacidad disponible',
                         'infoValue' => $this->formatKilograms($spotlightRoute->available_capacity_kg),
                         'statusLabel' => $this->humanizeStatus($spotlightRoute->status),
+                        'mapRoute' => [
+                            'id' => $spotlightRoute->id,
+                            'origin' => $spotlightRoute->origin,
+                            'origin_lat' => $spotlightRoute->origin_lat !== null ? (float) $spotlightRoute->origin_lat : null,
+                            'origin_lng' => $spotlightRoute->origin_lng !== null ? (float) $spotlightRoute->origin_lng : null,
+                            'destination' => $spotlightRoute->destination,
+                            'destination_lat' => $spotlightRoute->destination_lat !== null ? (float) $spotlightRoute->destination_lat : null,
+                            'destination_lng' => $spotlightRoute->destination_lng !== null ? (float) $spotlightRoute->destination_lng : null,
+                            'available_capacity_kg' => (float) $spotlightRoute->available_capacity_kg,
+                            'route_geometry' => $spotlightRoute->route_geometry,
+                        ],
                     ]
                     : [
                         'title' => 'Ruta disponible mas cercana',
@@ -215,6 +226,7 @@ class DashboardController extends Controller
                         'infoLabel' => 'Capacidad disponible',
                         'infoValue' => 'Pendiente',
                         'statusLabel' => 'Sin actividad',
+                        'mapRoute' => null,
                     ],
                 'metrics' => [
                     [

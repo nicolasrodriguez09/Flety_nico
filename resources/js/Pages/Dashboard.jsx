@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import RouteMap from '@/Components/RouteMap';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 
 function SearchIcon() {
@@ -132,7 +133,7 @@ function DataList({ section }) {
     };
 
     return (
-        <article className="rounded-[1.8rem] border border-[#e6eadf] bg-[linear-gradient(180deg,#ffffff_0%,#f7f9f3_100%)] p-6 shadow-[0_24px_62px_-50px_rgba(42,73,57,0.4)]">
+        <article className="animate-panel-rise rounded-2xl border border-[#dfe8dc] bg-white p-5 shadow-[0_18px_42px_-34px_rgba(31,74,49,0.35)] sm:p-6">
             <h3 className="text-lg font-semibold tracking-[-0.03em] text-[#203029]">
                 {section.title}
             </h3>
@@ -142,7 +143,7 @@ function DataList({ section }) {
                     section.items.map((item, index) => (
                         <div
                             key={`${section.title}-${index}`}
-                            className="rounded-2xl border border-[#e7eadf] bg-white px-4 py-3"
+                            className="rounded-xl border border-[#e1e9de] bg-[#f8fbf6] px-4 py-3"
                         >
                             <p className="font-semibold text-[#203029]">
                                 {item.title}
@@ -195,6 +196,15 @@ function DataList({ section }) {
     );
 }
 
+function hasRouteCoordinates(route) {
+    return (
+        Number.isFinite(Number(route?.origin_lat)) &&
+        Number.isFinite(Number(route?.origin_lng)) &&
+        Number.isFinite(Number(route?.destination_lat)) &&
+        Number.isFinite(Number(route?.destination_lng))
+    );
+}
+
 export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) {
     const { auth, flash } = usePage().props;
     const user = auth.user;
@@ -214,16 +224,20 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
             infoLabel: 'Estado',
             infoValue: 'Pendiente',
             statusLabel: 'Base',
+            mapRoute: null,
         },
         metrics: [],
         lists: [],
     };
+    const spotlightMapRoute = hasRouteCoordinates(data.spotlight.mapRoute)
+        ? data.spotlight.mapRoute
+        : null;
 
     return (
         <AuthenticatedLayout
             header={
                 <div className="flex flex-col gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#427c46]">
                         Centro de operaciones
                     </p>
                     <h2 className="text-2xl font-semibold leading-tight text-slate-900">
@@ -234,8 +248,8 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
         >
             <Head title="Panel" />
 
-            <div className="py-8 sm:py-10">
-                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <div className="bg-[linear-gradient(180deg,#eef7ec_0%,#f7faf4_44%,#fbfcf8_100%)]">
+                <div className="space-y-0">
                     {flash.success ? (
                         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
                             {flash.success}
@@ -247,113 +261,102 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
                         </section>
                     ) : null}
 
-                    <section className="overflow-hidden rounded-[2.3rem] border border-[#e7eadf] bg-[linear-gradient(180deg,#fbfbf7_0%,#f3f6ec_100%)] shadow-[0_36px_90px_-52px_rgba(42,73,57,0.42)]">
-                        <div className="border-b border-[#ecefe7] bg-white px-6 py-4 lg:px-8">
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <section className="animate-panel-rise overflow-hidden bg-[#f7faf4]">
+                        <div className="border-b border-[#e5ebdf] bg-white/95 px-4 py-4 sm:px-6 lg:px-8">
+                            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                                 <div className="flex items-center gap-4">
                                     <img
                                         src="/assets/landing/logo_flety.png"
                                         alt="Flety"
                                         className="h-12 w-auto"
                                     />
-                                    <div className="hidden h-10 w-px bg-[#e6eadf] sm:block" />
                                     <div>
-                                        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#5d7f69]">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#427c46]">
                                             {data.hero.badge}
                                         </p>
-                                        <p className="mt-1 text-sm text-[#6b726d]">
+                                        <p className="mt-1 text-sm font-medium text-[#52615a]">
                                             Informacion funcional cargada desde la base de datos
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <button
-                                        type="button"
-                                        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#e5eadf] bg-white text-[#4a5f55] shadow-[0_12px_26px_-22px_rgba(0,0,0,0.45)] transition hover:border-[#d2ddce]"
-                                    >
-                                        <SearchIcon />
-                                    </button>
-
+                                <div className="flex flex-wrap items-center gap-2">
                                     {data.pills.slice(0, 3).map((item) => (
                                         <div
                                             key={item.label}
-                                            className="rounded-2xl border border-[#e7eadf] bg-white px-4 py-2.5 text-sm font-medium text-[#4a5f55] shadow-[0_10px_24px_-22px_rgba(0,0,0,0.45)]"
+                                            className="rounded-2xl border border-[#e5ebdf] bg-[#f8faf5] px-4 py-2 text-sm font-medium text-[#31473c]"
                                         >
-                                            <span className="text-[#7a837e]">
+                                            <span className="text-[#7b887f]">
                                                 {item.label}:{' '}
                                             </span>
                                             {item.value}
                                         </div>
                                     ))}
+                                    <button
+                                        type="button"
+                                        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#e1e8dc] bg-white text-[#2f6d3e] transition hover:bg-[#f4f8ef]"
+                                    >
+                                        <SearchIcon />
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="relative overflow-hidden px-5 py-5 sm:px-6 lg:px-8 lg:py-8">
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(122,164,112,0.06)_100%)]" />
-                            <div className="absolute inset-x-6 top-0 h-[210px] rounded-[2rem] bg-[linear-gradient(180deg,rgba(99,140,98,0.16)_0%,rgba(255,255,255,0)_100%)]" />
+                        <div className="bg-[linear-gradient(135deg,#e8f4e5_0%,#f2f8ef_48%,#f8fbf6_100%)]">
+                            <div className="space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+                                <div className="grid items-start gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+                                    <div className="space-y-4 xl:sticky xl:top-24">
+                                        <div className="animate-panel-rise rounded-2xl border border-[#d8e8d4] bg-white/82 p-5 shadow-[0_18px_44px_-36px_rgba(31,74,49,0.4)]">
+                                            <h3 className="text-3xl font-semibold leading-tight text-[#203029] sm:text-[2.25rem]">
+                                                Bienvenido,{' '}
+                                                {user.name.split(' ')[0]}
+                                            </h3>
+                                            <p className="mt-3 text-sm leading-6 text-[#52615a]">
+                                                {data.hero.subtitle}
+                                            </p>
+                                        </div>
 
-                            <div className="relative space-y-6">
-                                <div className="rounded-[2rem] border border-[#ecf0e6] bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(245,248,240,0.98)_100%)] p-6 shadow-[0_28px_70px_-54px_rgba(42,73,57,0.42)] lg:p-7">
-                                    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                                        <div className="space-y-5">
-                                            <div className="inline-flex rounded-full border border-[#dce8d4] bg-[#f4f8ef] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#4f7d59]">
-                                                Bienvenido
+                                        <div className="animate-panel-rise stagger-1 rounded-2xl border border-[#d8e8d4] bg-white p-2 shadow-[0_18px_44px_-36px_rgba(31,74,49,0.4)]">
+                                            <div className="flex items-center justify-between rounded-xl border-b border-[#edf2e9] px-4 py-3 text-[#52615a]">
+                                                <span className="inline-flex items-center gap-3">
+                                                    <LocationIcon />
+                                                    {data.spotlight.route}
+                                                </span>
+                                                <span className="text-xl text-[#8a968f]">
+                                                    {'>'}
+                                                </span>
                                             </div>
-                                            <div>
-                                                <h3 className="max-w-[14ch] text-[2.6rem] font-semibold leading-[0.98] tracking-[-0.05em] text-[#1e2a25] sm:text-[3rem]">
-                                                    Hola, {user.name.split(' ')[0]}.
-                                                </h3>
-                                                <p className="mt-4 max-w-2xl text-[1.02rem] leading-8 text-[#5b645f]">
-                                                    {data.hero.title}
-                                                </p>
-                                                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#6b726d]">
-                                                    {data.hero.subtitle}
-                                                </p>
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-3">
-                                                {data.pills.map((item) => (
-                                                    <div
-                                                        key={item.label}
-                                                        className="rounded-2xl border border-[#e6ebdf] bg-white px-4 py-3 shadow-[0_16px_34px_-28px_rgba(0,0,0,0.4)]"
-                                                    >
-                                                        <p className="text-xs uppercase tracking-[0.2em] text-[#7a837e]">
-                                                            {item.label}
-                                                        </p>
-                                                        <p className="mt-1 font-semibold text-[#203029]">
-                                                            {item.value}
-                                                        </p>
-                                                    </div>
-                                                ))}
-
-                                                {entryRoute ? (
-                                                    <Link
-                                                        href={entryRoute}
-                                                        className="inline-flex items-center rounded-2xl bg-[linear-gradient(180deg,#5c9653_0%,#427c46_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_20px_38px_-26px_rgba(66,124,70,0.82)] transition hover:translate-y-[-1px]"
-                                                    >
-                                                        Ir al modulo operativo
-                                                    </Link>
-                                                ) : null}
+                                            <div className="flex items-center justify-between px-4 py-3 text-[#52615a]">
+                                                <span className="inline-flex items-center gap-3">
+                                                    <CalendarIcon />
+                                                    {data.spotlight.routeTo}
+                                                </span>
+                                                <span className="text-xl text-[#8a968f]">
+                                                    {'>'}
+                                                </span>
                                             </div>
                                         </div>
 
-                                        <div className="rounded-[2rem] border border-[#e3eadf] bg-[linear-gradient(180deg,#f7f9f2_0%,#f0f4ea_100%)] p-5 shadow-[0_20px_56px_-42px_rgba(42,73,57,0.4)]">
-                                            <div className="rounded-[1.7rem] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(241,246,235,0.9)_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <p className="text-sm font-semibold tracking-[-0.03em] text-[#2f6d3e]">
+                                        {entryRoute ? (
+                                            <Link
+                                                href={entryRoute}
+                                                className="interactive-lift inline-flex w-full justify-center rounded-xl bg-[#427c46] px-5 py-4 text-sm font-semibold text-white shadow-[0_18px_38px_-30px_rgba(66,124,70,0.75)] transition hover:bg-[#356b3f]"
+                                            >
+                                                Ir al modulo operativo
+                                            </Link>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="animate-panel-rise stagger-1 rounded-2xl border border-[#d8e8d4] bg-white p-4 shadow-[0_18px_44px_-36px_rgba(31,74,49,0.4)] lg:p-5">
+                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-[#2f6d3e]">
                                                         {data.spotlight.title}
                                                     </p>
-                                                    <div className="rounded-2xl bg-[#edf4e8] px-3 py-2 text-sm font-semibold text-[#4c7d4f]">
-                                                        {data.spotlight.statusLabel}
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-4 rounded-[1.5rem] border border-[#ecf0e7] bg-white/92 p-4">
-                                                    <div className="flex items-center gap-3 text-[#25322d]">
+                                                    <div className="mt-3 flex flex-wrap items-center gap-3 text-[#25322d]">
                                                         <LocationIcon />
-                                                        <p className="text-[1.9rem] font-semibold tracking-[-0.05em]">
+                                                        <p className="text-2xl font-semibold leading-tight sm:text-[1.8rem]">
                                                             {data.spotlight.route}
                                                             <span className="mx-2 text-[#86a98b]">
                                                                 {'->'}
@@ -361,55 +364,50 @@ export default function Dashboard({ dashboardRole, entryRoute, dashboardData }) 
                                                             {data.spotlight.routeTo}
                                                         </p>
                                                     </div>
-
-                                                    <div className="mt-4 flex items-center gap-3 text-[#5f6963]">
+                                                    <div className="mt-3 flex items-center gap-3 text-[#5f6963]">
                                                         <CalendarIcon />
-                                                        <p className="text-lg font-medium">
+                                                        <p className="font-medium">
                                                             {data.spotlight.dateLabel}
                                                         </p>
                                                     </div>
-
-                                                    <div className="mt-5 rounded-[1.3rem] bg-[linear-gradient(180deg,rgba(231,239,225,0.5)_0%,rgba(244,247,239,0.9)_100%)] px-3 py-3">
-                                                        <TrendLine />
-                                                    </div>
                                                 </div>
-
-                                                <div className="mt-5 flex items-center justify-between rounded-[1.4rem] border border-[#e5ebdf] bg-white px-4 py-3">
-                                                    <div>
-                                                        <p className="text-xs uppercase tracking-[0.22em] text-[#7e867f]">
-                                                            {data.spotlight.infoLabel}
-                                                        </p>
-                                                        <p className="mt-1 text-xl font-semibold tracking-[-0.04em] text-[#2b4737]">
-                                                            {data.spotlight.infoValue}
-                                                        </p>
-                                                    </div>
+                                                <div className="rounded-xl bg-[#edf4e8] px-3 py-2 text-sm font-semibold text-[#4c7d4f]">
+                                                    {data.spotlight.statusLabel}
                                                 </div>
                                             </div>
+
+                                            <div className="mt-4 overflow-hidden rounded-xl border border-[#dce8d8] bg-[#f4f8ef] p-2">
+                                                {spotlightMapRoute ? (
+                                                    <RouteMap
+                                                        routes={[spotlightMapRoute]}
+                                                        height="250px"
+                                                    />
+                                                ) : (
+                                                    <TrendLine />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                            {data.metrics.map((metric) => (
+                                                <article
+                                                    key={metric.title}
+                                                    className="interactive-lift animate-panel-rise rounded-xl border border-[#d8e8d4] bg-white p-4 shadow-[0_16px_36px_-30px_rgba(31,74,49,0.35)]"
+                                                >
+                                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7d856e]">
+                                                        {metric.eyebrow}
+                                                    </p>
+                                                    <h3 className="mt-3 text-sm font-semibold leading-tight text-[#203029]">
+                                                        {metric.title}
+                                                    </h3>
+                                                    <p className="mt-3 text-2xl font-semibold text-[#2f6d3e]">
+                                                        {metric.value}
+                                                    </p>
+                                                </article>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
-
-                                <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                                    {data.metrics.map((metric) => (
-                                        <article
-                                            key={metric.title}
-                                            className="rounded-[1.8rem] border border-[#e6eadf] bg-[linear-gradient(180deg,#ffffff_0%,#f7f9f3_100%)] p-6 shadow-[0_24px_62px_-50px_rgba(42,73,57,0.4)]"
-                                        >
-                                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#7d856e]">
-                                                {metric.eyebrow}
-                                            </p>
-                                            <h3 className="mt-4 text-lg font-semibold leading-tight tracking-[-0.03em] text-[#203029]">
-                                                {metric.title}
-                                            </h3>
-                                            <p className="mt-4 text-[2rem] font-semibold tracking-[-0.05em] text-[#2f6d3e]">
-                                                {metric.value}
-                                            </p>
-                                            <p className="mt-3 text-sm leading-7 text-[#626a65]">
-                                                {metric.body}
-                                            </p>
-                                        </article>
-                                    ))}
-                                </section>
 
                                 <section className="grid gap-4 lg:grid-cols-2">
                                     {data.lists.map((section) => (

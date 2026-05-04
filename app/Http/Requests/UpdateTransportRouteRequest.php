@@ -3,17 +3,24 @@
 namespace App\Http\Requests;
 
 use App\Models\Transporter;
+use App\Models\TransportRoute;
 use App\Models\Vehicle;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-class StoreTransportRouteRequest extends FormRequest
+class UpdateTransportRouteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isTransporter() ?? false;
+        $transporter = $this->user()?->transporterProfile;
+        $transportRoute = $this->route('transportRoute');
+
+        return $this->user()?->isTransporter()
+            && $transporter instanceof Transporter
+            && $transportRoute instanceof TransportRoute
+            && (int) $transportRoute->transporter_id === (int) $transporter->id;
     }
 
     /**
@@ -22,15 +29,20 @@ class StoreTransportRouteRequest extends FormRequest
     public function rules(): array
     {
         $transporterId = $this->user()?->transporterProfile?->id;
+        $currentVehicleId = $this->route('transportRoute')?->vehicle_id;
 
         return [
             'vehicle_id' => [
                 'required',
                 'integer',
-                Rule::exists('vehicles', 'id')->where(function ($query) use ($transporterId) {
+                Rule::exists('vehicles', 'id')->where(function ($query) use ($transporterId, $currentVehicleId) {
                     $query
                         ->where('transporter_id', $transporterId)
-                        ->where('status', Vehicle::STATUS_AVAILABLE);
+                        ->where(function ($query) use ($currentVehicleId) {
+                            $query
+                                ->where('status', Vehicle::STATUS_AVAILABLE)
+                                ->orWhere('id', $currentVehicleId);
+                        });
                 }),
             ],
             'origin' => ['required', 'string', 'max:255'],
@@ -59,7 +71,7 @@ class StoreTransportRouteRequest extends FormRequest
             }
 
             if (! $transporter->isValidated()) {
-                $validator->errors()->add('vehicle_id', 'Solo los transportistas validados pueden publicar rutas.');
+                $validator->errors()->add('vehicle_id', 'Solo los transportistas validados pueden editar rutas.');
             }
 
             $vehicle = $transporter->vehicles()->find($this->integer('vehicle_id'));
@@ -67,6 +79,7 @@ class StoreTransportRouteRequest extends FormRequest
             if ($vehicle && (float) $this->input('available_capacity_kg') > (float) $vehicle->capacity_kg) {
                 $validator->errors()->add('available_capacity_kg', 'La capacidad disponible no puede superar la capacidad del vehiculo.');
             }
+
             $hasOriginCoords = $this->filled('origin_lat') && $this->filled('origin_lng');
             $hasDestinationCoords = $this->filled('destination_lat') && $this->filled('destination_lng');
 
