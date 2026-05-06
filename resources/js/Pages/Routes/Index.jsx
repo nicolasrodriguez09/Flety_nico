@@ -1308,8 +1308,8 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
             <section className={cardClassName()}>
                 <SectionTitle
                     eyebrow="Busqueda"
-                    title="Buscar transportistas por ruta"
-                    description="Filtra las rutas activas por zona de salida y zona de llegada para encontrar opciones disponibles para tu carga."
+                    title="Buscar rutas cercanas"
+                    description="Filtra rutas activas por tu zona de salida y zona de llegada para encontrar transportistas disponibles para tu carga."
                 />
 
                 <form
@@ -1321,7 +1321,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                             htmlFor="search_origin"
                             className="text-sm font-medium text-slate-700"
                         >
-                            Zona de salida
+                            Zona de salida o interes
                         </label>
                         <input
                             id="search_origin"
@@ -1342,7 +1342,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                             htmlFor="search_destination"
                             className="text-sm font-medium text-slate-700"
                         >
-                            Zona de llegada
+                            Zona de llegada o destino
                         </label>
                         <input
                             id="search_destination"
@@ -1363,7 +1363,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                             type="submit"
                             className="interactive-lift inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
                         >
-                            Buscar rutas
+                            Buscar rutas cercanas
                         </button>
 
                         {hasActiveSearch ? (
@@ -1389,7 +1389,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                     <SectionTitle
                         eyebrow="Rutas disponibles"
                         title="Resultados de busqueda"
-                        description="Revisa una vista previa de cada ruta. Para enviar tu carga, abre el detalle de la ruta seleccionada."
+                        description="Revisa una vista previa de cada ruta cercana. Para enviar tu carga, abre el detalle de la ruta seleccionada."
                     />
 
                     <div className="mt-6 grid gap-4">
@@ -1471,7 +1471,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                                 </article>
                             ))
                         ) : (
-                            <EmptyState message="No hay rutas publicadas disponibles en este momento." />
+                            <EmptyState message="No hay rutas cercanas disponibles con esos filtros." />
                         )}
                     </div>
             </section>
