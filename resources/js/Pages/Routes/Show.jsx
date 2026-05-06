@@ -53,6 +53,12 @@ export default function Show({ transportRoute }) {
         delivery_destination: '',
         estimated_cost: '',
     });
+    const canSubmit =
+        Number(requestForm.data.cargo_weight_kg) > 0 &&
+        Number(requestForm.data.cargo_weight_kg) <=
+            Number(transportRoute.available_capacity_kg) &&
+        requestForm.data.product_type.trim() &&
+        requestForm.data.delivery_destination.trim();
 
     return (
         <AuthenticatedLayout
@@ -230,7 +236,10 @@ export default function Show({ transportRoute }) {
                                     <input
                                         id="cargo_weight_kg"
                                         type="number"
+                                        required
+                                        inputMode="decimal"
                                         min="1"
+                                        max={transportRoute.available_capacity_kg}
                                         step="0.01"
                                         value={requestForm.data.cargo_weight_kg}
                                         onChange={(event) =>
@@ -257,6 +266,7 @@ export default function Show({ transportRoute }) {
                                     <input
                                         id="estimated_cost"
                                         type="number"
+                                        inputMode="decimal"
                                         min="0"
                                         step="0.01"
                                         value={requestForm.data.estimated_cost}
@@ -285,6 +295,8 @@ export default function Show({ transportRoute }) {
                                     </label>
                                     <input
                                         id="product_type"
+                                        required
+                                        maxLength="100"
                                         value={requestForm.data.product_type}
                                         onChange={(event) =>
                                             requestForm.setData(
@@ -309,6 +321,8 @@ export default function Show({ transportRoute }) {
                                     </label>
                                     <input
                                         id="delivery_destination"
+                                        required
+                                        maxLength="255"
                                         value={
                                             requestForm.data.delivery_destination
                                         }
@@ -336,7 +350,7 @@ export default function Show({ transportRoute }) {
 
                             <button
                                 type="submit"
-                                disabled={requestForm.processing}
+                                disabled={!canSubmit || requestForm.processing}
                                 className="interactive-lift inline-flex w-full justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60 sm:w-auto"
                             >
                                 {requestForm.processing

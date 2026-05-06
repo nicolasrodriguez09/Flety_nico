@@ -56,6 +56,10 @@ class StoreTransportRequestRequest extends FormRequest
                 $validator->errors()->add('transport_route_id', 'Solo se pueden solicitar rutas publicadas.');
             }
 
+            if (! $route->transporter?->isValidated()) {
+                $validator->errors()->add('transport_route_id', 'Solo se pueden solicitar rutas de transportistas aprobados.');
+            }
+
             if ($route->departure_at?->isPast()) {
                 $validator->errors()->add('transport_route_id', 'La ruta ya no se encuentra disponible.');
             }
@@ -78,5 +82,13 @@ class StoreTransportRequestRequest extends FormRequest
                 $validator->errors()->add('transport_route_id', 'Ya tienes una solicitud activa para esta ruta.');
             }
         });
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'product_type' => trim((string) $this->input('product_type')),
+            'delivery_destination' => trim((string) $this->input('delivery_destination')),
+        ]);
     }
 }
