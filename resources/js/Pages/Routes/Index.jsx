@@ -1,4 +1,5 @@
 import RouteMap from '@/Components/RouteMap';
+import colombiaPlaces from '@/Data/colombiaPlaces';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -91,6 +92,80 @@ const routeColors = [
 
 function routeColor(index) {
     return routeColors[index % routeColors.length];
+}
+
+function normalizeText(value) {
+    return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+}
+
+function findDepartment(departmentCode) {
+    return colombiaPlaces.find(
+        (department) => department.code === departmentCode,
+    );
+}
+
+function findMunicipality(departmentCode, municipalityCode) {
+    const department = findDepartment(departmentCode);
+
+    return department?.municipalities.find(
+        (municipality) => municipality.code === municipalityCode,
+    );
+}
+
+function formatPlaceLabel(department, municipality) {
+    return `${municipality.name}, ${department.name}`;
+}
+
+function findPlaceSelection(label, lat, lng) {
+    const normalizedLabel = normalizeText(label);
+    const numericLat = Number(lat);
+    const numericLng = Number(lng);
+    let nearest = null;
+
+    for (const department of colombiaPlaces) {
+        for (const municipality of department.municipalities) {
+            const municipalityName = normalizeText(municipality.name);
+            const departmentName = normalizeText(department.name);
+
+            if (
+                normalizedLabel.includes(municipalityName) &&
+                (!normalizedLabel.includes(',') ||
+                    normalizedLabel.includes(departmentName))
+            ) {
+                return {
+                    departmentCode: department.code,
+                    municipalityCode: municipality.code,
+                };
+            }
+
+            if (Number.isFinite(numericLat) && Number.isFinite(numericLng)) {
+                const distance =
+                    Math.abs(Number(municipality.lat) - numericLat) +
+                    Math.abs(Number(municipality.lng) - numericLng);
+
+                if (!nearest || distance < nearest.distance) {
+                    nearest = {
+                        departmentCode: department.code,
+                        distance,
+                        municipalityCode: municipality.code,
+                    };
+                }
+            }
+        }
+    }
+
+    return nearest && nearest.distance < 0.35
+        ? {
+              departmentCode: nearest.departmentCode,
+              municipalityCode: nearest.municipalityCode,
+          }
+        : {
+              departmentCode: '',
+              municipalityCode: '',
+          };
 }
 
 function hasRouteCoordinates(route) {
@@ -316,6 +391,76 @@ function FlashMessages({ success, error }) {
     );
 }
 
+function LocationSelector({
+    error,
+    idPrefix,
+    label,
+    selectedDepartmentCode,
+    selectedMunicipalityCode,
+    onDepartmentChange,
+    onMunicipalityChange,
+}) {
+    const selectedDepartment = findDepartment(selectedDepartmentCode);
+    const municipalities = selectedDepartment?.municipalities ?? [];
+
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-800">{label}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label
+                        htmlFor={`${idPrefix}_department`}
+                        className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
+                    >
+                        Departamento
+                    </label>
+                    <select
+                        id={`${idPrefix}_department`}
+                        value={selectedDepartmentCode}
+                        onChange={(event) => onDepartmentChange(event.target.value)}
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                    >
+                        <option value="">Selecciona departamento</option>
+                        {colombiaPlaces.map((department) => (
+                            <option key={department.code} value={department.code}>
+                                {department.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`${idPrefix}_municipality`}
+                        className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
+                    >
+                        Ciudad o municipio
+                    </label>
+                    <select
+                        id={`${idPrefix}_municipality`}
+                        value={selectedMunicipalityCode}
+                        onChange={(event) => onMunicipalityChange(event.target.value)}
+                        disabled={!selectedDepartmentCode}
+                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-white px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:text-sm"
+                    >
+                        <option value="">
+                            {selectedDepartmentCode
+                                ? 'Selecciona ciudad o municipio'
+                                : 'Primero elige departamento'}
+                        </option>
+                        {municipalities.map((municipality) => (
+                            <option key={municipality.code} value={municipality.code}>
+                                {municipality.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <FieldError message={error} />
+        </div>
+    );
+}
+
 function ContactActions({ service }) {
     const counterpart = service.counterpart;
 
@@ -426,6 +571,12 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
     });
 
     const [selectionMode, setSelectionMode] = useState('origin');
+    const [originDepartmentCode, setOriginDepartmentCode] = useState('');
+    const [originMunicipalityCode, setOriginMunicipalityCode] = useState('');
+    const [destinationDepartmentCode, setDestinationDepartmentCode] =
+        useState('');
+    const [destinationMunicipalityCode, setDestinationMunicipalityCode] =
+        useState('');
     const {
         destinationPoint,
         originPoint,
@@ -433,6 +584,29 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
         routePreviewError,
         routePreviewState,
     } = useRealRoutePreview(routeForm.data);
+
+    const selectPlace = (prefix, departmentCode, municipalityCode) => {
+        const department = findDepartment(departmentCode);
+        const municipality = findMunicipality(departmentCode, municipalityCode);
+
+        if (!department || !municipality) {
+            routeForm.setData({
+                ...routeForm.data,
+                [prefix]: '',
+                [`${prefix}_lat`]: '',
+                [`${prefix}_lng`]: '',
+            });
+
+            return;
+        }
+
+        routeForm.setData({
+            ...routeForm.data,
+            [prefix]: formatPlaceLabel(department, municipality),
+            [`${prefix}_lat`]: municipality.lat,
+            [`${prefix}_lng`]: municipality.lng,
+        });
+    };
 
     const selectedVehicle = vehicles.find(
         (vehicle) => String(vehicle.id) === String(routeForm.data.vehicle_id),
@@ -484,6 +658,10 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                         preserveScroll: true,
                         onSuccess: () => {
                             alert('Ruta publicada correctamente');
+                            setOriginDepartmentCode('');
+                            setOriginMunicipalityCode('');
+                            setDestinationDepartmentCode('');
+                            setDestinationMunicipalityCode('');
 
                             routeForm.reset(
                                 'origin',
@@ -536,51 +714,58 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                     <FieldError message={routeForm.errors.vehicle_id} />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label
-                            htmlFor="origin"
-                            className="text-sm font-medium text-slate-700"
-                        >
-                            Origen
-                        </label>
-                        <input
-                            id="origin"
-                            required
-                            autoComplete="address-level2"
-                            value={routeForm.data.origin}
-                            onChange={(event) =>
-                                routeForm.setData('origin', event.target.value)
-                            }
-                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
-                            placeholder="Ej. Neiva"
-                        />
-                        <FieldError message={routeForm.errors.origin} />
-                    </div>
+                <div className="grid gap-4 xl:grid-cols-2">
+                    <LocationSelector
+                        idPrefix="origin"
+                        label="Origen"
+                        selectedDepartmentCode={originDepartmentCode}
+                        selectedMunicipalityCode={originMunicipalityCode}
+                        error={routeForm.errors.origin}
+                        onDepartmentChange={(departmentCode) => {
+                            setOriginDepartmentCode(departmentCode);
+                            setOriginMunicipalityCode('');
+                            routeForm.setData({
+                                ...routeForm.data,
+                                origin: '',
+                                origin_lat: '',
+                                origin_lng: '',
+                            });
+                        }}
+                        onMunicipalityChange={(municipalityCode) => {
+                            setOriginMunicipalityCode(municipalityCode);
+                            selectPlace(
+                                'origin',
+                                originDepartmentCode,
+                                municipalityCode,
+                            );
+                        }}
+                    />
 
-                    <div>
-                        <label
-                            htmlFor="destination"
-                            className="text-sm font-medium text-slate-700"
-                        >
-                            Destino
-                        </label>
-                        <input
-                            id="destination"
-                            required
-                            autoComplete="address-level2"
-                            value={routeForm.data.destination}
-                            onChange={(event) =>
-                                routeForm.setData(
-                                    'destination',
-                                    event.target.value,
-                                )
-                            }
-                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
-                            placeholder="Ej. Ibague"
-                        />
-                        <FieldError message={routeForm.errors.destination} />
-                    </div>
+                    <LocationSelector
+                        idPrefix="destination"
+                        label="Destino"
+                        selectedDepartmentCode={destinationDepartmentCode}
+                        selectedMunicipalityCode={destinationMunicipalityCode}
+                        error={routeForm.errors.destination}
+                        onDepartmentChange={(departmentCode) => {
+                            setDestinationDepartmentCode(departmentCode);
+                            setDestinationMunicipalityCode('');
+                            routeForm.setData({
+                                ...routeForm.data,
+                                destination: '',
+                                destination_lat: '',
+                                destination_lng: '',
+                            });
+                        }}
+                        onMunicipalityChange={(municipalityCode) => {
+                            setDestinationMunicipalityCode(municipalityCode);
+                            selectPlace(
+                                'destination',
+                                destinationDepartmentCode,
+                                municipalityCode,
+                            );
+                        }}
+                    />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -809,6 +994,27 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
         permitted_cargo_type: transportRoute.permitted_cargo_type ?? '',
     });
     const [selectionMode, setSelectionMode] = useState('origin');
+    const initialOriginSelection = findPlaceSelection(
+        transportRoute.origin,
+        transportRoute.origin_lat,
+        transportRoute.origin_lng,
+    );
+    const initialDestinationSelection = findPlaceSelection(
+        transportRoute.destination,
+        transportRoute.destination_lat,
+        transportRoute.destination_lng,
+    );
+    const [originDepartmentCode, setOriginDepartmentCode] = useState(
+        initialOriginSelection.departmentCode,
+    );
+    const [originMunicipalityCode, setOriginMunicipalityCode] = useState(
+        initialOriginSelection.municipalityCode,
+    );
+    const [destinationDepartmentCode, setDestinationDepartmentCode] = useState(
+        initialDestinationSelection.departmentCode,
+    );
+    const [destinationMunicipalityCode, setDestinationMunicipalityCode] =
+        useState(initialDestinationSelection.municipalityCode);
     const initialRoutePreview = hasRealRouteGeometry(transportRoute)
         ? {
               distance_km: transportRoute.distance_km,
@@ -828,6 +1034,28 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
     const selectedVehicle = vehicleOptions.find(
         (vehicle) => String(vehicle.id) === String(editForm.data.vehicle_id),
     );
+    const selectPlace = (prefix, departmentCode, municipalityCode) => {
+        const department = findDepartment(departmentCode);
+        const municipality = findMunicipality(departmentCode, municipalityCode);
+
+        if (!department || !municipality) {
+            editForm.setData({
+                ...editForm.data,
+                [prefix]: '',
+                [`${prefix}_lat`]: '',
+                [`${prefix}_lng`]: '',
+            });
+
+            return;
+        }
+
+        editForm.setData({
+            ...editForm.data,
+            [prefix]: formatPlaceLabel(department, municipality),
+            [`${prefix}_lat`]: municipality.lat,
+            [`${prefix}_lng`]: municipality.lng,
+        });
+    };
     const canSubmit =
         editForm.data.vehicle_id &&
         editForm.data.origin.trim() &&
@@ -909,44 +1137,58 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
                 <FieldError message={editForm.errors.vehicle_id} />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                    <label
-                        htmlFor={`edit_origin_${transportRoute.id}`}
-                        className="text-sm font-medium text-slate-700"
-                    >
-                        Origen
-                    </label>
-                    <input
-                        id={`edit_origin_${transportRoute.id}`}
-                        required
-                        value={editForm.data.origin}
-                        onChange={(event) =>
-                            editForm.setData('origin', event.target.value)
-                        }
-                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
-                    />
-                    <FieldError message={editForm.errors.origin} />
-                </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+                <LocationSelector
+                    idPrefix={`edit_origin_${transportRoute.id}`}
+                    label="Origen"
+                    selectedDepartmentCode={originDepartmentCode}
+                    selectedMunicipalityCode={originMunicipalityCode}
+                    error={editForm.errors.origin}
+                    onDepartmentChange={(departmentCode) => {
+                        setOriginDepartmentCode(departmentCode);
+                        setOriginMunicipalityCode('');
+                        editForm.setData({
+                            ...editForm.data,
+                            origin: '',
+                            origin_lat: '',
+                            origin_lng: '',
+                        });
+                    }}
+                    onMunicipalityChange={(municipalityCode) => {
+                        setOriginMunicipalityCode(municipalityCode);
+                        selectPlace(
+                            'origin',
+                            originDepartmentCode,
+                            municipalityCode,
+                        );
+                    }}
+                />
 
-                <div>
-                    <label
-                        htmlFor={`edit_destination_${transportRoute.id}`}
-                        className="text-sm font-medium text-slate-700"
-                    >
-                        Destino
-                    </label>
-                    <input
-                        id={`edit_destination_${transportRoute.id}`}
-                        required
-                        value={editForm.data.destination}
-                        onChange={(event) =>
-                            editForm.setData('destination', event.target.value)
-                        }
-                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
-                    />
-                    <FieldError message={editForm.errors.destination} />
-                </div>
+                <LocationSelector
+                    idPrefix={`edit_destination_${transportRoute.id}`}
+                    label="Destino"
+                    selectedDepartmentCode={destinationDepartmentCode}
+                    selectedMunicipalityCode={destinationMunicipalityCode}
+                    error={editForm.errors.destination}
+                    onDepartmentChange={(departmentCode) => {
+                        setDestinationDepartmentCode(departmentCode);
+                        setDestinationMunicipalityCode('');
+                        editForm.setData({
+                            ...editForm.data,
+                            destination: '',
+                            destination_lat: '',
+                            destination_lng: '',
+                        });
+                    }}
+                    onMunicipalityChange={(municipalityCode) => {
+                        setDestinationMunicipalityCode(municipalityCode);
+                        selectPlace(
+                            'destination',
+                            destinationDepartmentCode,
+                            municipalityCode,
+                        );
+                    }}
+                />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
