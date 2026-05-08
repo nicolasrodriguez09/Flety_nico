@@ -4,6 +4,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
+const colombiaTimeZone = 'America/Bogota';
+
 const statusLabels = {
     accepted: 'Aceptada',
     approved: 'Aprobado',
@@ -11,9 +13,12 @@ const statusLabels = {
     cancelled: 'Cancelada',
     closed: 'Cerrada',
     confirmed: 'Confirmado',
+    completed: 'Ruta completa',
     pending: 'Pendiente',
     published: 'Publicada',
+    in_progress: 'En camino',
     rejected: 'Rechazada',
+    starting_soon: 'Arranca pronto',
 };
 
 function formatDate(value) {
@@ -23,6 +28,7 @@ function formatDate(value) {
 
     return new Intl.DateTimeFormat('es-CO', {
         dateStyle: 'medium',
+        timeZone: colombiaTimeZone,
         timeStyle: 'short',
     }).format(new Date(value));
 }
@@ -38,9 +44,23 @@ function toDateTimeLocal(value) {
         return '';
     }
 
-    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        day: '2-digit',
+        hour: '2-digit',
+        hour12: false,
+        minute: '2-digit',
+        month: '2-digit',
+        timeZone: colombiaTimeZone,
+        year: 'numeric',
+    })
+        .formatToParts(date)
+        .reduce((values, part) => {
+            values[part.type] = part.value;
 
-    return offsetDate.toISOString().slice(0, 16);
+            return values;
+        }, {});
+
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
 function formatCurrency(value) {
@@ -326,8 +346,11 @@ function StatusBadge({ status }) {
         approved: 'bg-emerald-100 text-emerald-700',
         available: 'bg-emerald-100 text-emerald-700',
         confirmed: 'bg-emerald-100 text-emerald-700',
+        completed: 'bg-slate-900 text-white',
+        in_progress: 'bg-sky-100 text-sky-700',
         pending: 'bg-amber-100 text-amber-700',
         published: 'bg-emerald-100 text-emerald-700',
+        starting_soon: 'bg-amber-100 text-amber-700',
         rejected: 'bg-rose-100 text-rose-700',
         cancelled: 'bg-rose-100 text-rose-700',
         closed: 'bg-slate-200 text-slate-700',
@@ -1413,6 +1436,29 @@ function TransporterView({
         });
     };
 
+    const completeRoute = (transportRoute) => {
+        if (
+            !window.confirm(
+                `Marcar como completa la ruta ${transportRoute.origin} -> ${transportRoute.destination}? Los productores ya no la veran como disponible.`,
+            )
+        ) {
+            return;
+        }
+
+        router.patch(
+            route('transporter.routes.complete', transportRoute.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (editingRouteId === transportRoute.id) {
+                        setEditingRouteId(null);
+                    }
+                },
+            },
+        );
+    };
+
     return (
         <>
             <section className={cardClassName()}>
@@ -1728,6 +1774,21 @@ function TransporterView({
                                     </div>
 
                                     <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                                        {transportRoute.stored_status !==
+                                        'completed' ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    completeRoute(
+                                                        transportRoute,
+                                                    )
+                                                }
+                                                className="inline-flex justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+                                            >
+                                                Ruta completa
+                                            </button>
+                                        ) : null}
+
                                         <button
                                             type="button"
                                             onClick={() =>

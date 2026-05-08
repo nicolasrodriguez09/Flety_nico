@@ -28,7 +28,7 @@ class DashboardController extends Controller
                 ->with('vehicle:id,plate,vehicle_type,capacity_kg')
                 ->withCount('transportRequests')
                 ->where('transporter_id', $transporter->id)
-                ->orderByDesc('departure_at')
+                ->orderBy('departure_at')
                 ->get()
             : collect();
 
@@ -87,7 +87,7 @@ class DashboardController extends Controller
                         'dateLabel' => $this->formatDateTime($nextRoute->departure_at),
                         'infoLabel' => 'Capacidad disponible',
                         'infoValue' => $this->formatKilograms($nextRoute->available_capacity_kg),
-                        'statusLabel' => $this->humanizeStatus($nextRoute->status),
+                        'statusLabel' => $this->humanizeStatus($nextRoute->operationalStatus()),
                         'vehicleLabel' => $nextRoute->vehicle
                             ? $nextRoute->vehicle->plate.' · '.$nextRoute->vehicle->vehicle_type
                             : 'Vehiculo sin asignar',
@@ -163,7 +163,7 @@ class DashboardController extends Controller
                                     'available_capacity_kg' => (float) $route->available_capacity_kg,
                                     'route_geometry' => $route->route_geometry,
                                 ],
-                                'meta' => $this->formatDateTime($route->departure_at).' · '.$this->humanizeStatus($route->status),
+                                'meta' => $this->formatDateTime($route->departure_at).' · '.$this->humanizeStatus($route->operationalStatus()),
                             ])
                             ->values(),
                     ],
@@ -240,7 +240,7 @@ class DashboardController extends Controller
                         'dateLabel' => $this->formatDateTime($spotlightRoute->departure_at),
                         'infoLabel' => 'Capacidad disponible',
                         'infoValue' => $this->formatKilograms($spotlightRoute->available_capacity_kg),
-                        'statusLabel' => $this->humanizeStatus($spotlightRoute->status),
+                        'statusLabel' => $this->humanizeStatus($spotlightRoute->operationalStatus()),
                         'mapRoute' => [
                             'id' => $spotlightRoute->id,
                             'origin' => $spotlightRoute->origin,
@@ -458,7 +458,7 @@ class DashboardController extends Controller
                         'items' => $recentRoutes
                             ->map(fn (TransportRoute $route) => [
                                 'title' => $route->origin.' -> '.$route->destination,
-                                'meta' => $this->formatDateTime($route->departure_at).' · '.$this->humanizeStatus($route->status),
+                                'meta' => $this->formatDateTime($route->departure_at).' · '.$this->humanizeStatus($route->operationalStatus()),
                             ])
                             ->values(),
                     ],
@@ -474,6 +474,9 @@ class DashboardController extends Controller
             'pending' => 'Pendiente',
             'rejected' => 'Rechazado',
             'published' => 'Publicada',
+            'starting_soon' => 'Arranca pronto',
+            'in_progress' => 'En camino',
+            'completed' => 'Ruta completa',
             'closed' => 'Cerrada',
             'cancelled' => 'Cancelada',
             'accepted' => 'Aceptada',

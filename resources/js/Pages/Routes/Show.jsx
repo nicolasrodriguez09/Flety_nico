@@ -2,6 +2,8 @@ import RouteMap from '@/Components/RouteMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 
+const colombiaTimeZone = 'America/Bogota';
+
 function formatDate(value) {
     if (!value) {
         return 'Sin fecha';
@@ -9,6 +11,7 @@ function formatDate(value) {
 
     return new Intl.DateTimeFormat('es-CO', {
         dateStyle: 'medium',
+        timeZone: colombiaTimeZone,
         timeStyle: 'short',
     }).format(new Date(value));
 }

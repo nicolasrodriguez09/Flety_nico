@@ -51,6 +51,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/transportista/rutas/{transportRoute}', [TransportRouteController::class, 'update'])
         ->middleware(['verified', 'role:transportista'])
         ->name('transporter.routes.update');
+    Route::patch('/transportista/rutas/{transportRoute}/completar', [TransportRouteController::class, 'complete'])
+        ->middleware(['verified', 'role:transportista'])
+        ->name('transporter.routes.complete');
     Route::delete('/transportista/rutas/{transportRoute}', [TransportRouteController::class, 'destroy'])
         ->middleware(['verified', 'role:transportista'])
         ->name('transporter.routes.destroy');

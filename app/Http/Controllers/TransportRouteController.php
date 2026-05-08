@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,7 +34,7 @@ class TransportRouteController extends Controller
             ? $transporter->routes()
                 ->with('vehicle:id,plate,vehicle_type,capacity_kg')
                 ->withCount('transportRequests')
-                ->orderByDesc('departure_at')
+                ->orderBy('departure_at')
                 ->get()
                 ->map(fn (TransportRoute $route) => [
                     'id' => $route->id,
@@ -49,7 +50,8 @@ class TransportRouteController extends Controller
                     'estimated_duration_minutes' => $route->estimated_duration_minutes,
                     'route_geometry' => $route->route_geometry,
                     'permitted_cargo_type' => $route->permitted_cargo_type,
-                    'status' => $route->status,
+                    'status' => $route->operationalStatus(),
+                    'stored_status' => $route->status,
                     'transport_requests_count' => $route->transport_requests_count,
                     'vehicle' => $route->vehicle ? [
                         'id' => $route->vehicle->id,
@@ -182,7 +184,8 @@ class TransportRouteController extends Controller
                     'estimated_cost' => $costEstimator->estimate($distanceKm, $routeFilters['cargo_weight_kg']),
                     'route_geometry' => $route->route_geometry,
                     'permitted_cargo_type' => $route->permitted_cargo_type,
-                    'status' => $route->status,
+                    'status' => $route->operationalStatus(),
+                    'stored_status' => $route->status,
                     'vehicle' => $route->vehicle ? [
                         'plate' => $route->vehicle->plate,
                         'vehicle_type' => $route->vehicle->vehicle_type,
@@ -288,7 +291,8 @@ class TransportRouteController extends Controller
                 'cost_estimate_weight_kg' => $cargoWeightKg,
                 'route_geometry' => $transportRoute->route_geometry,
                 'permitted_cargo_type' => $transportRoute->permitted_cargo_type,
-                'status' => $transportRoute->status,
+                'status' => $transportRoute->operationalStatus(),
+                'stored_status' => $transportRoute->status,
                 'vehicle' => $transportRoute->vehicle ? [
                     'plate' => $transportRoute->vehicle->plate,
                     'vehicle_type' => $transportRoute->vehicle->vehicle_type,
@@ -354,7 +358,7 @@ class TransportRouteController extends Controller
             'destination' => $request->string('destination')->toString(),
             'destination_lat' => $destinationLat,
             'destination_lng' => $destinationLng,
-            'departure_at' => $request->date('departure_at'),
+            'departure_at' => $this->parseColombiaDateTime($request->input('departure_at')),
             'available_capacity_kg' => $request->input('available_capacity_kg'),
             'distance_km' => $routeMapData['distance_km'],
             'estimated_duration_minutes' => $routeMapData['estimated_duration_minutes'],
@@ -390,7 +394,7 @@ class TransportRouteController extends Controller
             'destination' => $request->string('destination')->toString(),
             'destination_lat' => $destinationLat,
             'destination_lng' => $destinationLng,
-            'departure_at' => $request->date('departure_at'),
+            'departure_at' => $this->parseColombiaDateTime($request->input('departure_at')),
             'available_capacity_kg' => $request->input('available_capacity_kg'),
             'distance_km' => $routeMapData['distance_km'],
             'estimated_duration_minutes' => $routeMapData['estimated_duration_minutes'],
@@ -413,6 +417,24 @@ class TransportRouteController extends Controller
         $transportRoute->delete();
 
         return back()->with('success', 'Ruta eliminada correctamente.');
+    }
+
+    public function complete(Request $request, TransportRoute $transportRoute): RedirectResponse
+    {
+        $transporter = $request->user()->transporterProfile;
+
+        abort_if(
+            ! $transporter || (int) $transportRoute->transporter_id !== (int) $transporter->id,
+            403
+        );
+
+        if ($transportRoute->status !== TransportRoute::STATUS_COMPLETED) {
+            $transportRoute->update([
+                'status' => TransportRoute::STATUS_COMPLETED,
+            ]);
+        }
+
+        return back()->with('success', 'Ruta marcada como completa.');
     }
 
     private function mapServiceForTransporter(Service $service): ?array
@@ -502,6 +524,11 @@ class TransportRouteController extends Controller
         $digits = $this->digitsOnly($phone);
 
         return $digits ? 'tel:'.$digits : null;
+    }
+
+    private function parseColombiaDateTime(mixed $value): Carbon
+    {
+        return Carbon::parse((string) $value, config('app.timezone'));
     }
 
     private function whatsappLink(?string $phone): ?string
