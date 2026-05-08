@@ -76,6 +76,23 @@ function formatDuration(minutes) {
     return `${hours} h ${remainingMinutes} min`;
 }
 
+const routeColors = [
+    '#1677ff',
+    '#f97316',
+    '#8b5cf6',
+    '#dc2626',
+    '#0891b2',
+    '#65a30d',
+    '#be123c',
+    '#7c3aed',
+    '#0f766e',
+    '#ca8a04',
+];
+
+function routeColor(index) {
+    return routeColors[index % routeColors.length];
+}
+
 function hasRouteCoordinates(route) {
     return (
         Number.isFinite(Number(route.origin_lat)) &&
@@ -1331,7 +1348,7 @@ function TransporterView({
                 <SectionTitle
                     eyebrow="Mapa"
                     title="Visualización de mis rutas"
-                    description="Aquí puedes ver en el mapa las rutas de retorno que tienen puntos de salida y llegada registrados."
+                    description="Aquí puedes ver en el mapa las rutas de retorno que tienen puntos de salida y llegada registrados. Cada ruta usa un color distinto para identificarla mejor."
                 />
 
                 <div className="mt-6">
@@ -1342,7 +1359,38 @@ function TransporterView({
                             route.destination_lat &&
                             route.destination_lng,
                     ) ? (
-                        <RouteMap routes={myRoutes} height="420px" />
+                        <div className="space-y-4">
+                            <RouteMap routes={myRoutes} height="420px" />
+                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                {myRoutes.map((transportRoute, index) => (
+                                    <div
+                                        key={transportRoute.id}
+                                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
+                                    >
+                                        <span
+                                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow"
+                                            style={{
+                                                backgroundColor:
+                                                    routeColor(index),
+                                            }}
+                                        >
+                                            {index + 1}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-slate-900">
+                                                {transportRoute.origin} {'->'}{' '}
+                                                {transportRoute.destination}
+                                            </p>
+                                            <p className="mt-0.5 text-xs text-slate-500">
+                                                {formatDate(
+                                                    transportRoute.departure_at,
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     ) : (
                         <EmptyState message="Todavía no tienes rutas con puntos seleccionados en el mapa." />
                     )}
@@ -1358,7 +1406,7 @@ function TransporterView({
 
                 <div className="mt-6 grid gap-4">
                     {myRoutes.length ? (
-                        myRoutes.map((transportRoute) => (
+                        myRoutes.map((transportRoute, index) => (
                             <article
                                 key={transportRoute.id}
                                 className="interactive-lift rounded-3xl border border-slate-200 bg-slate-50 p-5 transition"
@@ -1366,6 +1414,16 @@ function TransporterView({
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                     <div>
                                         <div className="flex flex-wrap items-center gap-3">
+                                            <span
+                                                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-white text-sm font-bold text-white shadow"
+                                                style={{
+                                                    backgroundColor:
+                                                        routeColor(index),
+                                                }}
+                                                title={`Ruta ${index + 1} en el mapa`}
+                                            >
+                                                {index + 1}
+                                            </span>
                                             <h4 className="text-lg font-semibold text-slate-900">
                                                 {transportRoute.origin} {'->'}{' '}
                                                 {transportRoute.destination}

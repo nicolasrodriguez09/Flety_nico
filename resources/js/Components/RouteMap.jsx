@@ -34,6 +34,19 @@ const colombiaBoundaryStyle = {
     weight: 2.4,
 };
 
+const routeColors = [
+    '#1677ff',
+    '#f97316',
+    '#8b5cf6',
+    '#dc2626',
+    '#0891b2',
+    '#65a30d',
+    '#be123c',
+    '#7c3aed',
+    '#0f766e',
+    '#ca8a04',
+];
+
 function isInsideColombiaBounds(lat, lng) {
     const numericLat = Number(lat);
     const numericLng = Number(lng);
@@ -82,6 +95,35 @@ function routePositions(route) {
         : [];
 
     return geometryPositions;
+}
+
+function routeColor(index) {
+    return routeColors[index % routeColors.length];
+}
+
+function createNumberedMarkerIcon(color, number) {
+    return L.divIcon({
+        className: '',
+        html: `
+            <div style="
+                align-items:center;
+                background:${color};
+                border:2px solid white;
+                border-radius:999px;
+                box-shadow:0 10px 24px rgba(15,23,42,.28);
+                color:white;
+                display:flex;
+                font-size:12px;
+                font-weight:800;
+                height:28px;
+                justify-content:center;
+                line-height:1;
+                width:28px;
+            ">${number}</div>
+        `,
+        iconAnchor: [14, 14],
+        iconSize: [28, 28],
+    });
 }
 
 function FitRouteBounds({ routes, originPoint, destinationPoint, draftRoute }) {
@@ -210,7 +252,7 @@ export default function RouteMap({
                     />
                 ) : null}
 
-                {validRoutes.map((route) => {
+                {validRoutes.map((route, index) => {
                     const straightPositions = [
                         [Number(route.origin_lat), Number(route.origin_lng)],
                         [
@@ -220,11 +262,19 @@ export default function RouteMap({
                     ];
 
                     const positions = routePositions(route);
+                    const color = routeColor(index);
+                    const routeNumber = index + 1;
+                    const originIcon = createNumberedMarkerIcon(
+                        color,
+                        routeNumber,
+                    );
 
                     return (
                         <Fragment key={route.id}>
-                            <Marker position={straightPositions[0]} icon={markerIcon}>
+                            <Marker position={straightPositions[0]} icon={originIcon}>
                                 <Popup>
+                                    <strong>Ruta {routeNumber}</strong>
+                                    <br />
                                     <strong>Salida:</strong> {route.origin}
                                     <br />
                                     <strong>Destino:</strong>{' '}
@@ -235,8 +285,10 @@ export default function RouteMap({
                                 </Popup>
                             </Marker>
 
-                            <Marker position={straightPositions[1]} icon={markerIcon}>
+                            <Marker position={straightPositions[1]} icon={originIcon}>
                                 <Popup>
+                                    <strong>Ruta {routeNumber}</strong>
+                                    <br />
                                     <strong>Llegada:</strong>{' '}
                                     {route.destination}
                                     <br />
@@ -247,7 +299,11 @@ export default function RouteMap({
                             {positions.length >= 2 ? (
                                 <Polyline
                                     positions={positions}
-                                    pathOptions={{ color: '#1677ff', weight: 5 }}
+                                    pathOptions={{
+                                        color,
+                                        opacity: 0.92,
+                                        weight: 5,
+                                    }}
                                 />
                             ) : null}
                         </Fragment>
