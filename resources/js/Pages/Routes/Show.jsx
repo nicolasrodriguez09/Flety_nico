@@ -13,6 +13,32 @@ function formatDate(value) {
     }).format(new Date(value));
 }
 
+function formatCurrency(value) {
+    if (value === null || value === undefined || value === '') {
+        return 'Sin estimacion';
+    }
+
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0,
+    }).format(Number(value));
+}
+
+function estimateTransportCost(distanceKm, cargoWeightKg) {
+    if (!distanceKm || !cargoWeightKg || Number(cargoWeightKg) <= 0) {
+        return '';
+    }
+
+    const estimatedCost =
+        45000 +
+        Number(distanceKm) * 1800 +
+        Number(cargoWeightKg) * 65 +
+        (Number(cargoWeightKg) / 1000) * Number(distanceKm) * 420;
+
+    return Math.ceil(estimatedCost / 1000) * 1000;
+}
+
 function hasRouteCoordinates(route) {
     return (
         Number.isFinite(Number(route?.origin_lat)) &&
@@ -48,10 +74,10 @@ export default function Show({ transportRoute }) {
     const hasMap = hasRouteCoordinates(transportRoute);
     const requestForm = useForm({
         transport_route_id: transportRoute.id,
-        cargo_weight_kg: '',
+        cargo_weight_kg: transportRoute.cost_estimate_weight_kg ?? '',
         product_type: '',
         delivery_destination: '',
-        estimated_cost: '',
+        estimated_cost: transportRoute.estimated_cost ?? '',
     });
     const canSubmit =
         Number(requestForm.data.cargo_weight_kg) > 0 &&
@@ -242,12 +268,20 @@ export default function Show({ transportRoute }) {
                                         max={transportRoute.available_capacity_kg}
                                         step="0.01"
                                         value={requestForm.data.cargo_weight_kg}
-                                        onChange={(event) =>
-                                            requestForm.setData(
-                                                'cargo_weight_kg',
-                                                event.target.value,
-                                            )
-                                        }
+                                        onChange={(event) => {
+                                            const cargoWeightKg =
+                                                event.target.value;
+
+                                            requestForm.setData({
+                                                ...requestForm.data,
+                                                cargo_weight_kg: cargoWeightKg,
+                                                estimated_cost:
+                                                    estimateTransportCost(
+                                                        transportRoute.distance_km,
+                                                        cargoWeightKg,
+                                                    ),
+                                            });
+                                        }}
                                         className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
                                         placeholder="Ej. 800"
                                     />
@@ -256,31 +290,22 @@ export default function Show({ transportRoute }) {
                                     />
                                 </div>
 
-                                <div>
-                                    <label
-                                        htmlFor="estimated_cost"
-                                        className="text-sm font-medium text-slate-700"
-                                    >
+                                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                                         Costo estimado
-                                    </label>
+                                    </p>
+                                    <p className="mt-2 text-2xl font-semibold text-[#203029]">
+                                        {formatCurrency(
+                                            requestForm.data.estimated_cost,
+                                        )}
+                                    </p>
+                                    <p className="mt-1 text-xs text-[#52615a]">
+                                        Calculado con peso y distancia publicada.
+                                    </p>
                                     <input
-                                        id="estimated_cost"
-                                        type="number"
-                                        inputMode="decimal"
-                                        min="0"
-                                        step="0.01"
+                                        type="hidden"
+                                        name="estimated_cost"
                                         value={requestForm.data.estimated_cost}
-                                        onChange={(event) =>
-                                            requestForm.setData(
-                                                'estimated_cost',
-                                                event.target.value,
-                                            )
-                                        }
-                                        className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                                        placeholder="Opcional"
-                                    />
-                                    <FieldError
-                                        message={requestForm.errors.estimated_cost}
                                     />
                                 </div>
                             </div>

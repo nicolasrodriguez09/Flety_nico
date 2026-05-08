@@ -7,15 +7,21 @@ use App\Models\Service;
 use App\Models\ServiceContact;
 use App\Models\TransportRequest;
 use App\Models\TransportRoute;
+use App\Services\TransportCostEstimator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class TransportRequestController extends Controller
 {
-    public function store(StoreTransportRequestRequest $request): RedirectResponse
+    public function store(StoreTransportRequestRequest $request, TransportCostEstimator $costEstimator): RedirectResponse
     {
         $producer = $request->user()->producerProfile;
+        $route = TransportRoute::query()->find($request->integer('transport_route_id'));
+        $estimatedCost = $costEstimator->estimate(
+            $route?->distance_km,
+            $request->input('cargo_weight_kg'),
+        );
 
         TransportRequest::create([
             'transport_route_id' => $request->integer('transport_route_id'),
@@ -23,7 +29,7 @@ class TransportRequestController extends Controller
             'cargo_weight_kg' => $request->input('cargo_weight_kg'),
             'product_type' => $request->string('product_type')->toString(),
             'delivery_destination' => $request->string('delivery_destination')->toString(),
-            'estimated_cost' => $request->input('estimated_cost'),
+            'estimated_cost' => $estimatedCost ?? $request->input('estimated_cost'),
             'status' => TransportRequest::STATUS_PENDING,
             'requested_at' => now(),
         ]);

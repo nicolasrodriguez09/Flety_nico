@@ -346,6 +346,30 @@ class TransportRouteManagementTest extends TestCase
         ]);
     }
 
+    public function test_transport_request_stores_server_estimated_cost_from_weight_and_distance(): void
+    {
+        $route = $this->createPublishedRoute([
+            'distance_km' => 100,
+        ], 'request-cost-route@example.com');
+        $producer = $this->createProducerUser('request-cost-producer@example.com');
+
+        $this->actingAs($producer)
+            ->post(route('producer.transport-requests.store'), [
+                'transport_route_id' => $route->id,
+                'cargo_weight_kg' => 500,
+                'product_type' => 'Cafe',
+                'delivery_destination' => 'Mosquera',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('transport_requests', [
+            'transport_route_id' => $route->id,
+            'producer_id' => $producer->producerProfile->id,
+            'cargo_weight_kg' => 500,
+            'estimated_cost' => 279000,
+        ]);
+    }
+
     public function test_producer_cannot_request_more_weight_than_available_capacity(): void
     {
         $route = $this->createPublishedRoute([
@@ -440,6 +464,35 @@ class TransportRouteManagementTest extends TestCase
         $response->assertSee($visibleRoute->destination);
         $response->assertDontSee($hiddenByOrigin->origin);
         $response->assertDontSee($hiddenByDestination->destination);
+    }
+
+    public function test_producer_can_compare_routes_with_estimated_cost_by_cargo_weight(): void
+    {
+        $visibleRoute = $this->createPublishedRoute([
+            'origin' => 'Tunja',
+            'destination' => 'Bogota',
+            'available_capacity_kg' => 900,
+            'distance_km' => 100,
+        ], 'compare-visible@example.com');
+
+        $hiddenByCapacity = $this->createPublishedRoute([
+            'origin' => 'Duitama',
+            'destination' => 'Bogota',
+            'available_capacity_kg' => 300,
+            'distance_km' => 80,
+        ], 'compare-hidden-capacity@example.com');
+
+        $producer = $this->createProducerUser('route-compare@example.com');
+
+        $response = $this->actingAs($producer)
+            ->get(route('producer.routes.index', [
+                'cargo_weight_kg' => 500,
+            ]));
+
+        $response->assertOk();
+        $response->assertSee($visibleRoute->origin);
+        $response->assertSee('279000');
+        $response->assertDontSee($hiddenByCapacity->origin);
     }
 
     public function test_producer_can_view_a_published_route_detail(): void

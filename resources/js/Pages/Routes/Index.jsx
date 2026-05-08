@@ -1265,9 +1265,12 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
     const [searchFilters, setSearchFilters] = useState({
         origin: routeFilters.origin ?? '',
         destination: routeFilters.destination ?? '',
+        cargo_weight_kg: routeFilters.cargo_weight_kg ?? '',
     });
     const hasActiveSearch =
-        Boolean(routeFilters.origin) || Boolean(routeFilters.destination);
+        Boolean(routeFilters.origin) ||
+        Boolean(routeFilters.destination) ||
+        Boolean(routeFilters.cargo_weight_kg);
 
     const submitSearch = (event) => {
         event.preventDefault();
@@ -1277,6 +1280,10 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
             {
                 origin: searchFilters.origin.trim() || undefined,
                 destination: searchFilters.destination.trim() || undefined,
+                cargo_weight_kg:
+                    Number(searchFilters.cargo_weight_kg) > 0
+                        ? searchFilters.cargo_weight_kg
+                        : undefined,
             },
             {
                 preserveScroll: true,
@@ -1290,6 +1297,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
         setSearchFilters({
             origin: '',
             destination: '',
+            cargo_weight_kg: '',
         });
 
         router.get(
@@ -1313,7 +1321,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                 />
 
                 <form
-                    className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto]"
+                    className="mt-6 grid gap-4 xl:grid-cols-[1fr_1fr_0.8fr_auto]"
                     onSubmit={submitSearch}
                 >
                     <div>
@@ -1358,7 +1366,32 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                         />
                     </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row lg:items-end">
+                    <div>
+                        <label
+                            htmlFor="search_cargo_weight"
+                            className="text-sm font-medium text-slate-700"
+                        >
+                            Peso de carga
+                        </label>
+                        <input
+                            id="search_cargo_weight"
+                            type="number"
+                            inputMode="decimal"
+                            min="1"
+                            step="0.01"
+                            value={searchFilters.cargo_weight_kg}
+                            onChange={(event) =>
+                                setSearchFilters((current) => ({
+                                    ...current,
+                                    cargo_weight_kg: event.target.value,
+                                }))
+                            }
+                            className="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                            placeholder="Ej. 800 kg"
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row xl:items-end">
                         <button
                             type="submit"
                             className="interactive-lift inline-flex justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
@@ -1447,6 +1480,18 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                                                 : 'duracion pendiente'}
                                         </p>
                                     ) : null}
+                                    <div className="mt-4 rounded-2xl border border-emerald-100 bg-white px-4 py-3">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                            Costo estimado
+                                        </p>
+                                        <p className="mt-2 text-xl font-semibold text-slate-900">
+                                            {transportRoute.estimated_cost
+                                                ? formatCurrency(
+                                                    transportRoute.estimated_cost,
+                                                )
+                                                : 'Ingresa el peso para estimar'}
+                                        </p>
+                                    </div>
                                     <div className="mt-4 overflow-hidden rounded-2xl border border-emerald-100 bg-white p-2">
                                         {hasRouteCoordinates(transportRoute) ? (
                                             <RouteMap
@@ -1462,7 +1507,13 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                                     <Link
                                         href={route(
                                             'producer.routes.show',
-                                            transportRoute.id,
+                                            {
+                                                transportRoute:
+                                                    transportRoute.id,
+                                                cargo_weight_kg:
+                                                    routeFilters.cargo_weight_kg ||
+                                                    undefined,
+                                            },
                                         )}
                                         className="interactive-lift mt-4 inline-flex rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
                                     >
