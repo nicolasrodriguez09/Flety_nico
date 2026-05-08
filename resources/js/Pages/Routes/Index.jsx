@@ -290,6 +290,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
 
             <form
                 className="mt-6 space-y-4"
+                noValidate
                 onSubmit={(event) => {
                     event.preventDefault();
                     routeForm.post(route('transporter.routes.store'), {
@@ -652,6 +653,7 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
     return (
         <form
             className="mt-5 space-y-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
+            noValidate
             onSubmit={(event) => {
                 event.preventDefault();
 
@@ -1322,6 +1324,7 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
 
                 <form
                     className="mt-6 grid gap-4 xl:grid-cols-[1fr_1fr_0.8fr_auto]"
+                    noValidate
                     onSubmit={submitSearch}
                 >
                     <div>

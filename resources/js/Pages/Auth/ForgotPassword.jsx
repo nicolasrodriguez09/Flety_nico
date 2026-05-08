@@ -42,7 +42,7 @@ export default function ForgotPassword({ status }) {
                 </div>
             )}
 
-            <form onSubmit={submit} className="space-y-5">
+            <form onSubmit={submit} className="space-y-5" noValidate>
                 <div>
                     <InputLabel htmlFor="email" value="Correo electronico" />
 

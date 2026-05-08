@@ -228,6 +228,7 @@ export default function Show({ transportRoute }) {
 
                         <form
                             className="mt-6 space-y-4"
+                            noValidate
                             onSubmit={(event) => {
                                 event.preventDefault();
                                 requestForm.post(

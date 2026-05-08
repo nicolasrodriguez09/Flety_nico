@@ -90,6 +90,7 @@ function VehicleForm() {
 
             <form
                 className="mt-6 space-y-4"
+                noValidate
                 onSubmit={(event) => {
                     event.preventDefault();
                     form.post(route('transporter.vehicles.store'), {

@@ -77,7 +77,7 @@ class UpdateTransportRouteRequest extends FormRequest
             $vehicle = $transporter->vehicles()->find($this->integer('vehicle_id'));
 
             if ($vehicle && (float) $this->input('available_capacity_kg') > (float) $vehicle->capacity_kg) {
-                $validator->errors()->add('available_capacity_kg', 'La capacidad disponible no puede superar la capacidad del vehiculo.');
+                $validator->errors()->add('available_capacity_kg', 'La capacidad disponible no puede superar la capacidad del vehículo.');
             }
 
             $hasOriginCoords = $this->filled('origin_lat') && $this->filled('origin_lng');

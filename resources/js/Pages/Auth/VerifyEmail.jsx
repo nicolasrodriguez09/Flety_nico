@@ -36,7 +36,7 @@ export default function VerifyEmail({ status }) {
                 </div>
             )}
 
-            <form onSubmit={submit}>
+            <form onSubmit={submit} noValidate>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <PrimaryButton
                         disabled={processing}

@@ -43,7 +43,7 @@ export default function ConfirmPassword() {
                 contrasena antes de continuar.
             </div>
 
-            <form onSubmit={submit}>
+            <form onSubmit={submit} noValidate>
                 <div>
                     <InputLabel htmlFor="password" value="Contrasena actual" />
 

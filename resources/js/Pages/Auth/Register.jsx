@@ -91,7 +91,7 @@ export default function Register({ roles, selectedRole }) {
         >
             <Head title="Crear cuenta" />
 
-            <form onSubmit={submit} className="space-y-5">
+            <form onSubmit={submit} className="space-y-5" noValidate>
                 <div>
                     <InputLabel htmlFor="name" value="Nombre completo" />
 
