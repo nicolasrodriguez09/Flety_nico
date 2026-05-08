@@ -215,6 +215,14 @@ return [
         'origin' => [
             'required' => 'Indica el origen de la ruta.',
         ],
+        'origin_lat' => [
+            'between' => 'Selecciona un punto de salida dentro de Colombia.',
+            'required' => 'Selecciona el punto de salida en el mapa.',
+        ],
+        'origin_lng' => [
+            'between' => 'Selecciona un punto de salida dentro de Colombia.',
+            'required' => 'Selecciona el punto de salida en el mapa.',
+        ],
         'password' => [
             'confirmed' => 'La confirmación de contraseña no coincide.',
             'required' => 'Ingresa una contraseña.',
@@ -240,6 +248,14 @@ return [
         ],
         'technical_review_image' => [
             'required' => 'Carga una foto de la revisión técnico-mecánica.',
+        ],
+        'destination_lat' => [
+            'between' => 'Selecciona un punto de llegada dentro de Colombia.',
+            'required' => 'Selecciona el punto de llegada en el mapa.',
+        ],
+        'destination_lng' => [
+            'between' => 'Selecciona un punto de llegada dentro de Colombia.',
+            'required' => 'Selecciona el punto de llegada en el mapa.',
         ],
         'transit_license_image' => [
             'required' => 'Carga una foto de la licencia de tránsito.',

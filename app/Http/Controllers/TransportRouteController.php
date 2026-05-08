@@ -11,7 +11,9 @@ use App\Services\OpenRouteService;
 use App\Services\TransportCostEstimator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -299,6 +301,31 @@ class TransportRouteController extends Controller
         ]);
     }
 
+    public function preview(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'origin_lat' => ['required', 'numeric', 'between:-4.5,13.8'],
+            'origin_lng' => ['required', 'numeric', 'between:-82.2,-66.7'],
+            'destination_lat' => ['required', 'numeric', 'between:-4.5,13.8'],
+            'destination_lng' => ['required', 'numeric', 'between:-82.2,-66.7'],
+        ]);
+
+        $routeMapData = $this->routeMapData(
+            $validated['origin_lat'],
+            $validated['origin_lng'],
+            $validated['destination_lat'],
+            $validated['destination_lng'],
+        );
+
+        if (! $routeMapData['route_geometry']) {
+            throw ValidationException::withMessages([
+                'origin_lat' => 'No se pudo calcular un trayecto real por carretera dentro de Colombia. Ajusta los puntos en el mapa e intenta de nuevo.',
+            ]);
+        }
+
+        return response()->json($routeMapData);
+    }
+
     public function store(StoreTransportRouteRequest $request): RedirectResponse
     {
         $transporter = $request->user()->transporterProfile;
@@ -309,6 +336,14 @@ class TransportRouteController extends Controller
         $destinationLng = $request->input('destination_lng');
 
         $routeMapData = $this->routeMapData($originLat, $originLng, $destinationLat, $destinationLng);
+
+        if (! $routeMapData['route_geometry']) {
+            return back()
+                ->withErrors([
+                    'origin_lat' => 'No se pudo calcular un trayecto real por carretera dentro de Colombia. Ajusta los puntos en el mapa e intenta de nuevo.',
+                ])
+                ->withInput();
+        }
 
         TransportRoute::create([
             'transporter_id' => $transporter->id,
@@ -338,6 +373,14 @@ class TransportRouteController extends Controller
         $destinationLat = $request->input('destination_lat');
         $destinationLng = $request->input('destination_lng');
         $routeMapData = $this->routeMapData($originLat, $originLng, $destinationLat, $destinationLng);
+
+        if (! $routeMapData['route_geometry']) {
+            return back()
+                ->withErrors([
+                    'origin_lat' => 'No se pudo calcular un trayecto real por carretera dentro de Colombia. Ajusta los puntos en el mapa e intenta de nuevo.',
+                ])
+                ->withInput();
+        }
 
         $transportRoute->update([
             'vehicle_id' => $request->integer('vehicle_id'),

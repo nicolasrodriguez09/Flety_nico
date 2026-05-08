@@ -25,6 +25,28 @@ function formatCurrency(value) {
     }).format(Number(value));
 }
 
+function formatDuration(minutes) {
+    const numericMinutes = Number(minutes);
+
+    if (!Number.isFinite(numericMinutes) || numericMinutes <= 0) {
+        return 'Pendiente';
+    }
+
+    const roundedMinutes = Math.round(numericMinutes);
+    const hours = Math.floor(roundedMinutes / 60);
+    const remainingMinutes = roundedMinutes % 60;
+
+    if (hours <= 0) {
+        return `${remainingMinutes} min`;
+    }
+
+    if (remainingMinutes === 0) {
+        return `${hours} h`;
+    }
+
+    return `${hours} h ${remainingMinutes} min`;
+}
+
 function estimateTransportCost(distanceKm, cargoWeightKg) {
     if (!distanceKm || !cargoWeightKg || Number(cargoWeightKg) <= 0) {
         return '';
@@ -57,6 +79,24 @@ function DetailItem({ label, value }) {
             <p className="mt-2 text-base font-semibold text-[#203029]">
                 {value || 'Sin dato'}
             </p>
+        </div>
+    );
+}
+
+function HighlightDetailItem({ label, value, description }) {
+    return (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5 shadow-[0_18px_36px_-30px_rgba(31,74,49,0.5)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                {label}
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-[#203029]">
+                {value || 'Pendiente'}
+            </p>
+            {description ? (
+                <p className="mt-2 text-sm leading-5 text-[#52615a]">
+                    {description}
+                </p>
+            ) : null}
         </div>
     );
 }
@@ -202,13 +242,12 @@ export default function Show({ transportRoute }) {
                                         : 'Pendiente'
                                 }
                             />
-                            <DetailItem
-                                label="Duracion estimada"
-                                value={
-                                    transportRoute.estimated_duration_minutes
-                                        ? `${transportRoute.estimated_duration_minutes} min`
-                                        : 'Pendiente'
-                                }
+                            <HighlightDetailItem
+                                label="Tiempo aproximado"
+                                value={formatDuration(
+                                    transportRoute.estimated_duration_minutes,
+                                )}
+                                description="Calculado a partir del trayecto real por carretera."
                             />
                         </div>
                     </section>

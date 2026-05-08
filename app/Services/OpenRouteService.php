@@ -28,7 +28,7 @@ class OpenRouteService
                 'Accept' => 'application/geo+json',
                 'Content-Type' => 'application/json',
             ])
-                ->timeout(15)
+                ->timeout((int) config('services.openrouteservice.timeout', 30))
                 ->post($baseUrl.'/v2/directions/driving-car/geojson', [
                     'coordinates' => [
                         [(float) $originLng, (float) $originLat],

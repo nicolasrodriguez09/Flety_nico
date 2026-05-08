@@ -13,6 +13,7 @@ use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -20,8 +21,17 @@ class TransportRouteManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['services.openrouteservice.key' => 'test-key']);
+    }
+
     public function test_validated_transporter_can_register_a_vehicle_and_publish_a_route(): void
     {
+        $this->fakeSuccessfulRouteResponse();
+
         Storage::fake('public');
         $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
 
@@ -50,7 +60,11 @@ class TransportRouteManagementTest extends TestCase
             ->post(route('transporter.routes.store'), [
                 'vehicle_id' => $vehicle->id,
                 'origin' => 'Tunja',
+                'origin_lat' => 5.8267,
+                'origin_lng' => -73.0339,
                 'destination' => 'Bogota',
+                'destination_lat' => 4.711,
+                'destination_lng' => -74.0721,
                 'departure_at' => now()->addDays(2)->format('Y-m-d H:i:s'),
                 'available_capacity_kg' => 1800,
                 'permitted_cargo_type' => 'Papa',
@@ -71,6 +85,8 @@ class TransportRouteManagementTest extends TestCase
             'destination' => 'Bogota',
             'status' => TransportRoute::STATUS_PUBLISHED,
         ]);
+
+        $this->assertNotNull(TransportRoute::query()->firstOrFail()->route_geometry);
     }
 
     public function test_registered_vehicle_stays_pending_and_cannot_publish_routes_until_admin_approval(): void
@@ -89,7 +105,7 @@ class TransportRouteManagementTest extends TestCase
 
         $this->assertSame(Vehicle::STATUS_PENDING, $vehicle->status);
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->from(route('transporter.routes.index'))
             ->post(route('transporter.routes.store'), [
                 'vehicle_id' => $vehicle->id,
@@ -139,6 +155,8 @@ class TransportRouteManagementTest extends TestCase
 
     public function test_route_publication_trims_location_and_cargo_type_values_before_saving(): void
     {
+        $this->fakeSuccessfulRouteResponse();
+
         $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
         $vehicle = Vehicle::query()->create([
             'transporter_id' => $user->transporterProfile->id,
@@ -152,7 +170,11 @@ class TransportRouteManagementTest extends TestCase
             ->post(route('transporter.routes.store'), [
                 'vehicle_id' => $vehicle->id,
                 'origin' => '  Neiva  ',
+                'origin_lat' => 2.935,
+                'origin_lng' => -75.2809,
                 'destination' => '  Ibague  ',
+                'destination_lat' => 4.4389,
+                'destination_lng' => -75.2322,
                 'departure_at' => now()->addDays(2)->format('Y-m-d H:i:s'),
                 'available_capacity_kg' => 1800,
                 'permitted_cargo_type' => '  Cafe  ',
@@ -169,8 +191,64 @@ class TransportRouteManagementTest extends TestCase
         ]);
     }
 
+    public function test_transporter_can_preview_real_route_geometry_before_publishing(): void
+    {
+        $this->fakeSuccessfulRouteResponse();
+
+        $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
+
+        $this->actingAs($user)
+            ->postJson(route('transporter.routes.preview'), [
+                'origin_lat' => 5.8267,
+                'origin_lng' => -73.0339,
+                'destination_lat' => 4.711,
+                'destination_lng' => -74.0721,
+            ])
+            ->assertOk()
+            ->assertJsonPath('distance_km', 250.5)
+            ->assertJsonPath('estimated_duration_minutes', 240)
+            ->assertJsonCount(3, 'route_geometry');
+    }
+
+    public function test_route_publication_fails_when_real_route_geometry_cannot_be_calculated(): void
+    {
+        Http::fake(fn () => Http::response(['features' => []], 200));
+
+        $user = $this->createTransporterUser(Transporter::STATUS_APPROVED);
+        $vehicle = Vehicle::query()->create([
+            'transporter_id' => $user->transporterProfile->id,
+            'plate' => 'GEO123',
+            'vehicle_type' => 'Camion',
+            'capacity_kg' => 2500,
+            'status' => Vehicle::STATUS_AVAILABLE,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from(route('transporter.routes.index'))
+            ->post(route('transporter.routes.store'), [
+                'vehicle_id' => $vehicle->id,
+                'origin' => 'Tunja',
+                'origin_lat' => 5.8267,
+                'origin_lng' => -73.0339,
+                'destination' => 'Bogota',
+                'destination_lat' => 4.711,
+                'destination_lng' => -74.0721,
+                'departure_at' => now()->addDays(2)->format('Y-m-d H:i:s'),
+                'available_capacity_kg' => 1800,
+                'permitted_cargo_type' => 'Papa',
+            ]);
+
+        $response
+            ->assertRedirect(route('transporter.routes.index'))
+            ->assertSessionHasErrors(['origin_lat']);
+
+        $this->assertDatabaseCount('transport_routes', 0);
+    }
+
     public function test_route_owner_can_update_a_published_route(): void
     {
+        $this->fakeSuccessfulRouteResponse();
+
         $route = $this->createPublishedRoute([
             'origin_lat' => 5.8267,
             'origin_lng' => -73.0339,
@@ -702,6 +780,31 @@ class TransportRouteManagementTest extends TestCase
             'role_id' => $roleId,
             'email' => $email,
             'phone' => fake()->unique()->numerify('3#########'),
+        ]);
+    }
+
+    private function fakeSuccessfulRouteResponse(): void
+    {
+        Http::fake([
+            'api.openrouteservice.org/*' => Http::response([
+                'features' => [
+                    [
+                        'properties' => [
+                            'summary' => [
+                                'distance' => 250.5,
+                                'duration' => 14400,
+                            ],
+                        ],
+                        'geometry' => [
+                            'coordinates' => [
+                                [-73.0339, 5.8267],
+                                [-73.3678, 5.5353],
+                                [-74.0721, 4.711],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
         ]);
     }
 

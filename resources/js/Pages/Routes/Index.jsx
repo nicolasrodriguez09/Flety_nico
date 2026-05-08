@@ -1,7 +1,7 @@
 import RouteMap from '@/Components/RouteMap';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const statusLabels = {
     accepted: 'Aceptada',
@@ -54,6 +54,28 @@ function formatCurrency(value) {
     }).format(Number(value));
 }
 
+function formatDuration(minutes) {
+    const numericMinutes = Number(minutes);
+
+    if (!Number.isFinite(numericMinutes) || numericMinutes <= 0) {
+        return 'Pendiente';
+    }
+
+    const roundedMinutes = Math.round(numericMinutes);
+    const hours = Math.floor(roundedMinutes / 60);
+    const remainingMinutes = roundedMinutes % 60;
+
+    if (hours <= 0) {
+        return `${remainingMinutes} min`;
+    }
+
+    if (remainingMinutes === 0) {
+        return `${hours} h`;
+    }
+
+    return `${hours} h ${remainingMinutes} min`;
+}
+
 function hasRouteCoordinates(route) {
     return (
         Number.isFinite(Number(route.origin_lat)) &&
@@ -61,6 +83,145 @@ function hasRouteCoordinates(route) {
         Number.isFinite(Number(route.destination_lat)) &&
         Number.isFinite(Number(route.destination_lng))
     );
+}
+
+function mapPointFromData(data, prefix) {
+    const lat = data[`${prefix}_lat`];
+    const lng = data[`${prefix}_lng`];
+
+    return lat && lng
+        ? {
+              lat: Number(lat),
+              lng: Number(lng),
+          }
+        : null;
+}
+
+function hasRealRouteGeometry(routePreview) {
+    return (
+        Array.isArray(routePreview?.route_geometry) &&
+        routePreview.route_geometry.length >= 2
+    );
+}
+
+function buildDraftRoute(formData, routePreview) {
+    if (!hasRealRouteGeometry(routePreview)) {
+        return null;
+    }
+
+    return {
+        id: 'preview',
+        origin: formData.origin,
+        origin_lat: formData.origin_lat,
+        origin_lng: formData.origin_lng,
+        destination: formData.destination,
+        destination_lat: formData.destination_lat,
+        destination_lng: formData.destination_lng,
+        route_geometry: routePreview.route_geometry,
+        available_capacity_kg: formData.available_capacity_kg,
+    };
+}
+
+function routePreviewMessage(state, error, routePreview) {
+    if (state === 'loading') {
+        return 'Calculando trayecto real por carretera...';
+    }
+
+    if (state === 'ready' && routePreview) {
+        const distance = routePreview.distance_km
+            ? `${routePreview.distance_km} km`
+            : 'distancia calculada';
+        const duration = routePreview.estimated_duration_minutes
+            ? ` - Tiempo aprox. ${formatDuration(routePreview.estimated_duration_minutes)}`
+            : '';
+
+        return `Trayecto real calculado: ${distance}${duration}`;
+    }
+
+    if (state === 'error') {
+        return error || 'No se pudo calcular el trayecto real.';
+    }
+
+    return 'Selecciona salida y llegada dentro de Colombia para calcular el trayecto real.';
+}
+
+function useRealRoutePreview(formData, initialRoutePreview = null) {
+    const [routePreview, setRoutePreview] = useState(initialRoutePreview);
+    const [routePreviewState, setRoutePreviewState] = useState(
+        hasRealRouteGeometry(initialRoutePreview) ? 'ready' : 'idle',
+    );
+    const [routePreviewError, setRoutePreviewError] = useState('');
+    const originPoint = mapPointFromData(formData, 'origin');
+    const destinationPoint = mapPointFromData(formData, 'destination');
+    const hasMapPoints = Boolean(originPoint && destinationPoint);
+
+    useEffect(() => {
+        setRoutePreview(null);
+        setRoutePreviewError('');
+
+        if (!hasMapPoints) {
+            setRoutePreviewState('idle');
+
+            return;
+        }
+
+        let active = true;
+        const timeoutId = window.setTimeout(async () => {
+            setRoutePreviewState('loading');
+
+            try {
+                const response = await window.axios.post(
+                    route('transporter.routes.preview'),
+                    {
+                        origin_lat: formData.origin_lat,
+                        origin_lng: formData.origin_lng,
+                        destination_lat: formData.destination_lat,
+                        destination_lng: formData.destination_lng,
+                    },
+                );
+
+                if (!active) {
+                    return;
+                }
+
+                setRoutePreview(response.data);
+                setRoutePreviewState('ready');
+            } catch (error) {
+                if (!active) {
+                    return;
+                }
+
+                const errors = error.response?.data?.errors;
+                setRoutePreviewError(
+                    errors?.origin_lat?.[0] ||
+                        errors?.destination_lat?.[0] ||
+                        error.response?.data?.message ||
+                        'No se pudo calcular el trayecto real por carretera.',
+                );
+                setRoutePreviewState('error');
+            }
+        }, 500);
+
+        return () => {
+            active = false;
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        formData.destination_lat,
+        formData.destination_lng,
+        formData.origin_lat,
+        formData.origin_lng,
+        hasMapPoints,
+    ]);
+
+    return {
+        destinationPoint,
+        hasMapPoints,
+        originPoint,
+        routePreview,
+        routePreviewError,
+        routePreviewState,
+    };
 }
 
 function cardClassName(extra = '') {
@@ -248,6 +409,13 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
     });
 
     const [selectionMode, setSelectionMode] = useState('origin');
+    const {
+        destinationPoint,
+        originPoint,
+        routePreview,
+        routePreviewError,
+        routePreviewState,
+    } = useRealRoutePreview(routeForm.data);
 
     const selectedVehicle = vehicles.find(
         (vehicle) => String(vehicle.id) === String(routeForm.data.vehicle_id),
@@ -264,7 +432,9 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
         (!selectedVehicle ||
             Number(routeForm.data.available_capacity_kg) <=
                 Number(selectedVehicle.capacity_kg)) &&
-        routeForm.data.permitted_cargo_type.trim();
+        routeForm.data.permitted_cargo_type.trim() &&
+        routePreviewState === 'ready' &&
+        hasRealRouteGeometry(routePreview);
 
     return (
         <article className={cardClassName()}>
@@ -310,9 +480,8 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                                 'permitted_cargo_type',
                             );
                         },
-                        onError: (errors) => {
-                            console.log('Errores al publicar ruta:', errors);
-                            alert('No se pudo publicar la ruta. Revisa la consola del navegador.');
+                        onError: () => {
+                            alert('No se pudo publicar la ruta. Revisa los datos e intenta de nuevo.');
                         },
                     });
                 }}
@@ -467,7 +636,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('origin')}
-                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+                                className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                                     selectionMode === 'origin'
                                         ? 'bg-emerald-700 text-white'
                                         : 'bg-white text-slate-700'
@@ -479,7 +648,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('destination')}
-                            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+                                className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
                                     selectionMode === 'destination'
                                         ? 'bg-emerald-700 text-white'
                                         : 'bg-white text-slate-700'
@@ -493,22 +662,9 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
                     <RouteMap
                         selectable
                         selectionMode={selectionMode}
-                        originPoint={
-                            routeForm.data.origin_lat && routeForm.data.origin_lng
-                                ? {
-                                    lat: Number(routeForm.data.origin_lat),
-                                    lng: Number(routeForm.data.origin_lng),
-                                }
-                                : null
-                        }
-                        destinationPoint={
-                            routeForm.data.destination_lat && routeForm.data.destination_lng
-                                ? {
-                                    lat: Number(routeForm.data.destination_lat),
-                                    lng: Number(routeForm.data.destination_lng),
-                                }
-                                : null
-                        }
+                        originPoint={originPoint}
+                        destinationPoint={destinationPoint}
+                        draftRoute={buildDraftRoute(routeForm.data, routePreview)}
                         onSelectPoint={(point) => {
                             if (point.type === 'origin') {
                                 routeForm.setData({
@@ -547,6 +703,22 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
 
                     <FieldError message={routeForm.errors.origin_lat} />
                     <FieldError message={routeForm.errors.destination_lat} />
+
+                    <div
+                        className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
+                            routePreviewState === 'ready'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : routePreviewState === 'error'
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : 'bg-white text-slate-600'
+                        }`}
+                    >
+                        {routePreviewMessage(
+                            routePreviewState,
+                            routePreviewError,
+                            routePreview,
+                        )}
+                    </div>
                 </div>
                 <div>
                     <label
@@ -573,7 +745,7 @@ function PublishRouteForm({ vehicles, transporterProfile }) {
 
                 <button
                     type="submit"
-                    disabled={routeForm.processing}
+                    disabled={!canSubmitRoute || routeForm.processing}
                     className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
                     {routeForm.processing ? 'Publicando...' : 'Publicar ruta'}
@@ -620,6 +792,21 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
         permitted_cargo_type: transportRoute.permitted_cargo_type ?? '',
     });
     const [selectionMode, setSelectionMode] = useState('origin');
+    const initialRoutePreview = hasRealRouteGeometry(transportRoute)
+        ? {
+              distance_km: transportRoute.distance_km,
+              estimated_duration_minutes:
+                  transportRoute.estimated_duration_minutes,
+              route_geometry: transportRoute.route_geometry,
+          }
+        : null;
+    const {
+        destinationPoint,
+        originPoint,
+        routePreview,
+        routePreviewError,
+        routePreviewState,
+    } = useRealRoutePreview(editForm.data, initialRoutePreview);
 
     const selectedVehicle = vehicleOptions.find(
         (vehicle) => String(vehicle.id) === String(editForm.data.vehicle_id),
@@ -633,22 +820,9 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
         (!selectedVehicle ||
             Number(editForm.data.available_capacity_kg) <=
                 Number(selectedVehicle.capacity_kg)) &&
-        editForm.data.permitted_cargo_type.trim();
-
-    const originPoint =
-        editForm.data.origin_lat && editForm.data.origin_lng
-            ? {
-                  lat: Number(editForm.data.origin_lat),
-                  lng: Number(editForm.data.origin_lng),
-              }
-            : null;
-    const destinationPoint =
-        editForm.data.destination_lat && editForm.data.destination_lng
-            ? {
-                  lat: Number(editForm.data.destination_lat),
-                  lng: Number(editForm.data.destination_lng),
-              }
-            : null;
+        editForm.data.permitted_cargo_type.trim() &&
+        routePreviewState === 'ready' &&
+        hasRealRouteGeometry(routePreview);
 
     return (
         <form
@@ -872,6 +1046,7 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
                     selectionMode={selectionMode}
                     originPoint={originPoint}
                     destinationPoint={destinationPoint}
+                    draftRoute={buildDraftRoute(editForm.data, routePreview)}
                     height="300px"
                     onSelectPoint={(point) => {
                         if (point.type === 'origin') {
@@ -911,6 +1086,22 @@ function EditRouteForm({ transportRoute, vehicles, onCancel, onSuccess }) {
 
                 <FieldError message={editForm.errors.origin_lat} />
                 <FieldError message={editForm.errors.destination_lat} />
+
+                <div
+                    className={`mt-3 rounded-2xl px-4 py-3 text-sm ${
+                        routePreviewState === 'ready'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : routePreviewState === 'error'
+                              ? 'bg-rose-100 text-rose-700'
+                              : 'bg-white text-slate-600'
+                    }`}
+                >
+                    {routePreviewMessage(
+                        routePreviewState,
+                        routePreviewError,
+                        routePreview,
+                    )}
+                </div>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -1212,6 +1403,28 @@ function TransporterView({
                                             Carga permitida:{' '}
                                             {transportRoute.permitted_cargo_type}
                                         </p>
+                                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                            <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3">
+                                                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                                    Tiempo aprox.
+                                                </p>
+                                                <p className="mt-1 text-xl font-semibold text-slate-900">
+                                                    {formatDuration(
+                                                        transportRoute.estimated_duration_minutes,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                                    Distancia
+                                                </p>
+                                                <p className="mt-1 text-xl font-semibold text-slate-900">
+                                                    {transportRoute.distance_km
+                                                        ? `${transportRoute.distance_km} km`
+                                                        : 'Pendiente'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
@@ -1470,19 +1683,28 @@ function ProducerView({ availableRoutes, routeFilters = {} }) {
                                             transportRoute.permitted_cargo_type
                                         }
                                     </p>
-                                    {transportRoute.distance_km ||
-                                    transportRoute.estimated_duration_minutes ? (
-                                        <p className="mt-1 text-sm text-slate-600">
-                                            Recorrido:{' '}
-                                            {transportRoute.distance_km
-                                                ? `${transportRoute.distance_km} km`
-                                                : 'Distancia pendiente'}
-                                            {' - '}
-                                            {transportRoute.estimated_duration_minutes
-                                                ? `${transportRoute.estimated_duration_minutes} min`
-                                                : 'duracion pendiente'}
-                                        </p>
-                                    ) : null}
+                                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                                            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                                Tiempo aprox.
+                                            </p>
+                                            <p className="mt-1 text-2xl font-semibold text-slate-900">
+                                                {formatDuration(
+                                                    transportRoute.estimated_duration_minutes,
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                                Distancia
+                                            </p>
+                                            <p className="mt-1 text-2xl font-semibold text-slate-900">
+                                                {transportRoute.distance_km
+                                                    ? `${transportRoute.distance_km} km`
+                                                    : 'Pendiente'}
+                                            </p>
+                                        </div>
+                                    </div>
                                     <div className="mt-4 rounded-2xl border border-emerald-100 bg-white px-4 py-3">
                                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                                             Costo estimado
