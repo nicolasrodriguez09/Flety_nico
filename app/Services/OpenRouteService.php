@@ -10,24 +10,13 @@ class OpenRouteService
     public function getDrivingRoute(
         float $originLat,
         float $originLng,
-<?php
-
-namespace App\Services;
-
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-
-class OpenRouteService
-{
-    public function getDrivingRoute(
-        float $originLat,
-        float $originLng,
         float $destinationLat,
         float $destinationLng
     ): ?array {
         $apiKey = config('services.openrouteservice.key');
         $baseUrl = rtrim(config('services.openrouteservice.base_url'), '/');
 
+        // Intentar con OpenRouteService primero
         if ($apiKey) {
             try {
                 $response = Http::withHeaders([
