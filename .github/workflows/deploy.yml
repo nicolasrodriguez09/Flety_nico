@@ -53,15 +53,4 @@ jobs:
           REMOTE_PORT: "65002"
           TARGET: ${{ secrets.HOSTINGER_TARGET_DIR }}
 
-      - name: 🔄 Ejecutar comandos finales en Hostinger (Migraciones y Caché)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: "212.85.29.99"
-          username: "u542030658"
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: "65002"
-          script: |
-            cd ${{ secrets.HOSTINGER_TARGET_DIR }}
-            php artisan optimize:clear
-            php artisan migrate --force
-            php artisan storage:link
+
