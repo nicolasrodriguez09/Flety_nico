@@ -48,6 +48,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
           ARGS: "-rlgoDzvc -i --delete"
           SOURCE: "./"
+          EXCLUDE: "/node_modules/, /.git/, /.github/, .env, /storage/"
           REMOTE_HOST: "212.85.29.99"
           REMOTE_USER: "u542030658"
           REMOTE_PORT: "65002"
