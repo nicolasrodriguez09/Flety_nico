@@ -63,6 +63,7 @@ jobs:
           port: "65002"
           script: |
             cd ${{ secrets.HOSTINGER_TARGET_DIR }}
+            ls -la
             rm -f bootstrap/cache/*.php
             php artisan optimize:clear
             php artisan migrate --force
