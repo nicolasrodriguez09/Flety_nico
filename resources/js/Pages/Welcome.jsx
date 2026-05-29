@@ -51,7 +51,11 @@ export default function Welcome({ auth, canLogin, canRegister }) {
                                 {canLogin && (
                                     <Link
                                         href={route('login')}
-                                        className="hidden sm:inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:text-emerald-700 hover:bg-emerald-50"
+                                        className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                                            scrolled 
+                                                ? 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50' 
+                                                : 'text-white hover:text-white hover:bg-white/10 backdrop-blur-sm'
+                                        }`}
                                     >
                                         Iniciar sesión
                                     </Link>
