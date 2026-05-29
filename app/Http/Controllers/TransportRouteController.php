@@ -367,11 +367,7 @@ class TransportRouteController extends Controller
             $validated['destination_lng'],
         );
 
-        if (! $routeMapData['route_geometry']) {
-            throw ValidationException::withMessages([
-                'origin_lat' => 'No se pudo calcular un trayecto real por carretera dentro de Colombia. Ajusta los puntos en el mapa e intenta de nuevo.',
-            ]);
-        }
+        // Eliminado la restricción estricta de geometría para permitir fallbacks del mapa
 
         return response()->json($routeMapData);
     }
@@ -387,13 +383,7 @@ class TransportRouteController extends Controller
 
         $routeMapData = $this->routeMapData($originLat, $originLng, $destinationLat, $destinationLng);
 
-        if (! $routeMapData['route_geometry']) {
-            return back()
-                ->withErrors([
-                    'origin_lat' => 'No se pudo calcular un trayecto real por carretera dentro de Colombia. Ajusta los puntos en el mapa e intenta de nuevo.',
-                ])
-                ->withInput();
-        }
+        // Eliminado la restricción estricta de geometría para permitir fallbacks del mapa
 
         $departureAt = $this->parseColombiaDateTime($request->input('departure_at'));
 
@@ -440,13 +430,7 @@ class TransportRouteController extends Controller
         $destinationLng = $request->input('destination_lng');
         $routeMapData = $this->routeMapData($originLat, $originLng, $destinationLat, $destinationLng);
 
-        if (! $routeMapData['route_geometry']) {
-            return back()
-                ->withErrors([
-                    'origin_lat' => 'No se pudo calcular un trayecto real por carretera dentro de Colombia. Ajusta los puntos en el mapa e intenta de nuevo.',
-                ])
-                ->withInput();
-        }
+        // Eliminado la restricción estricta de geometría para permitir fallbacks del mapa
 
         $departureAt = $this->parseColombiaDateTime($request->input('departure_at'));
 
