@@ -1,0 +1,67 @@
+name: Deploy Flety to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+      - pruebas # Cambia esto si tu rama principal se llama master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Checkout código
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2' # Asumiendo PHP 8.2 para Laravel 11. Ajusta si es diferente.
+          extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_mysql, dom, filter, gd, json, libxml, fileinfo
+          coverage: none
+
+      - name: 📦 Instalar dependencias de Composer
+        run: composer install --optimize-autoloader --no-dev --no-interaction --prefer-dist
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Instalar dependencias de NPM
+        run: npm ci
+
+      - name: 🛠️ Compilar Assets (Vite / React)
+        run: npm run build
+
+      - name: 🧹 Limpiar archivos innecesarios antes de subir
+        run: |
+          rm -rf node_modules
+          rm -rf tests
+          rm -rf .git
+          rm -rf .github
+
+      - name: 🚀 Desplegar a Hostinger vía Rsync (SSH)
+        uses: easingthemes/ssh-deploy@v5
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          ARGS: "-rlgoDzvc -i --delete"
+          SOURCE: "./"
+          REMOTE_HOST: "212.85.29.99"
+          REMOTE_USER: "u542030658"
+          REMOTE_PORT: "65002"
+          TARGET: ${{ secrets.HOSTINGER_TARGET_DIR }}
+
+      - name: 🔄 Ejecutar comandos finales en Hostinger (Migraciones y Caché)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: "212.85.29.99"
+          username: "u542030658"
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: "65002"
+          script: |
+            cd ${{ secrets.HOSTINGER_TARGET_DIR }}
+            php artisan optimize:clear
+            php artisan migrate --force
+            php artisan storage:link
