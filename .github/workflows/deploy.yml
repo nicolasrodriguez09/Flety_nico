@@ -43,7 +43,7 @@ jobs:
           rm -rf .github
 
       - name: 🚀 Desplegar a Hostinger vía Rsync (SSH)
-        uses: easingthemes/ssh-deploy@v5
+        uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
           ARGS: "-rlgoDzvc -i --delete"
