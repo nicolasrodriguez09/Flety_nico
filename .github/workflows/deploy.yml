@@ -66,4 +66,4 @@ jobs:
             ls -la
             rm -f bootstrap/cache/*.php
             php artisan optimize:clear
-            php artisan migrate --seed --force
+            php artisan migrate --force
