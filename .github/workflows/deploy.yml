@@ -22,7 +22,7 @@ jobs:
           coverage: none
 
       - name: 📦 Instalar dependencias de Composer
-        run: composer install --optimize-autoloader --no-dev --no-interaction --prefer-dist
+        run: composer install --optimize-autoloader --no-interaction --prefer-dist
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
@@ -67,3 +67,4 @@ jobs:
             rm -f bootstrap/cache/*.php
             php artisan optimize:clear
             php artisan migrate --force
+            php artisan db:seed --class=MassiveSimulationSeeder --force
